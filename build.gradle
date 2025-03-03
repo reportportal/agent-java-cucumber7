@@ -1,0 +1,97 @@
+/*
+ * Copyright 2025 EPAM Systems
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply plugin: 'java-library'
+
+apply from: 'build-quality.gradle'
+apply from: "${project.scripts_url}/${project.scripts_branch}/release-commons.gradle"
+apply from: "${project.scripts_url}/${project.scripts_branch}/signing.gradle"
+apply from: "${project.scripts_url}/${project.scripts_branch}/jacoco.gradle"
+
+project.ext.limits = [
+        'instruction': 70,
+        'branch'     : 53,
+        'line'       : 75,
+        'complexity' : 60,
+        'method'     : 65,
+        'class'      : 90
+]
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'com.epam.reportportal:client-java:5.2.31'
+
+    implementation "io.cucumber:cucumber-gherkin:${project.cucumber_version}"
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+
+    testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    testImplementation "io.cucumber:cucumber-java:${project.cucumber_version}"
+    testImplementation 'com.epam.reportportal:agent-java-test-utils:0.0.9'
+    testImplementation "io.cucumber:cucumber-testng:${project.cucumber_version}"
+    testImplementation 'org.aspectj:aspectjweaver:1.9.19'
+    testImplementation 'org.hamcrest:hamcrest-core:2.2'
+    testImplementation 'org.mockito:mockito-core:3.3.3'
+    testImplementation 'org.mockito:mockito-junit-jupiter:3.3.3'
+    testImplementation 'ch.qos.logback:logback-classic:1.5.16'
+    testImplementation 'com.epam.reportportal:logger-java-logback:5.2.3'
+    testImplementation ("org.junit.platform:junit-platform-runner:${project.junit_runner_version}") {
+        exclude module: 'junit'
+    }
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${project.junit_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:${project.junit_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:${project.junit_version}"
+    testImplementation 'commons-io:commons-io:2.16.1'
+}
+
+test {
+    outputs.upToDateWhen { return false }
+    useJUnitPlatform()
+    maxParallelForks(5) // it's forks - separate JVMs, should not interfere each other
+    doFirst {
+        def weaver = configurations.testRuntimeClasspath.find { it.name.contains("aspectjweaver") }
+        jvmArgs += "-javaagent:$weaver"
+    }
+    environment "AGENT_NO_ANALYTICS", "1"
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+wrapper {
+    gradleVersion = '5.4.1'
+}
+
+processResources {
+    filesMatching('agent.properties') {
+        expand(project.properties)
+    }
+}
+
+release {
+    git {
+        requireBranch = 'main'
+    }
+}
+
+build.dependsOn jacocoTestReport
