@@ -24,7 +24,6 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
-import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
@@ -53,15 +52,10 @@ public class FailedTest {
 
 	private static final String EXPECTED_ERROR = "java.lang.IllegalStateException: " + FailedSteps.ERROR_MESSAGE;
 	private static final String EXPECTED_STACK_TRACE = EXPECTED_ERROR
-			+ "\n\tat com.epam.reportportal.cucumber.integration.feature.FailedSteps.i_have_a_failed_step(FailedSteps.java:31)"
+			+ "\n\tat com.epam.reportportal.cucumber.integration.feature.FailedSteps.i_have_a_failed_step(FailedSteps.java:32)"
 			+ "\n\tat ✽.I have a failed step(file://" + System.getProperty("user.dir")
 			+ "/src/test/resources/features/FailedScenario.feature:4)\n";
 	private static final String ERROR_LOG_TEXT = "Error:\n" + EXPECTED_STACK_TRACE;
-
-	private static final String SCENARIO_CODE_REFERENCES_WITH_ERROR = MarkdownUtils.asTwoParts(
-			"file://" + System.getProperty("user.dir") + "/src/test/resources/features/FailedScenario.feature",
-			ERROR_LOG_TEXT
-	);
 
 	@CucumberOptions(features = "src/test/resources/features/FailedScenario.feature", glue = {
 			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
@@ -124,17 +118,23 @@ public class FailedTest {
 		verify(client).startTestItem(same(suiteId), any());
 		verify(client).startTestItem(same(testId), any());
 		verify(client).startTestItem(same(stepId), any());
-		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(nestedStepId), finishCaptor.capture());
-		verify(client).finishTestItem(same(stepId), any());
-		verify(client).finishTestItem(same(testId), finishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> stepCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(nestedStepId), stepCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(stepId), scenarioCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> featureCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(testId), featureCaptor.capture());
 
-		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
-		finishRqs.subList(0, finishRqs.size() - 1).forEach(e -> assertThat(e.getStatus(), equalTo(ItemStatus.FAILED.name())));
+		FinishTestItemRQ finishStepRequest = stepCaptor.getValue();
+		assertThat(finishStepRequest.getDescription(), nullValue());
+		assertThat(finishStepRequest.getStatus(), equalTo(ItemStatus.FAILED.name()));
 
-		FinishTestItemRQ step = finishRqs.get(0);
-		assertThat(step.getDescription(), not(equalTo(ERROR_LOG_TEXT)));
-		FinishTestItemRQ test = finishRqs.get(1);
-		assertThat(test.getDescription(), equalTo(SCENARIO_CODE_REFERENCES_WITH_ERROR));
+		FinishTestItemRQ finishScenarioRequest = scenarioCaptor.getValue();
+		assertThat(finishScenarioRequest.getDescription(), equalTo(ERROR_LOG_TEXT));
+		assertThat(finishScenarioRequest.getStatus(), equalTo(ItemStatus.FAILED.name()));
+
+		FinishTestItemRQ finishFeatureRequest = featureCaptor.getValue();
+		assertThat(finishFeatureRequest.getDescription(), nullValue());
+		assertThat(finishFeatureRequest.getStatus(), nullValue());
 	}
 }

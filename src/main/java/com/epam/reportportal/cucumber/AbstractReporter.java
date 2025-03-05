@@ -271,7 +271,6 @@ public abstract class AbstractReporter implements ConcurrentEventListener {
 	protected StartTestItemRQ buildStartScenarioRequest(@Nonnull TestCase testCase, @Nonnull String name, @Nonnull URI uri, int line) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(name);
-		rq.setDescription(getDescription(testCase, uri));
 		String codeRef = getCodeRef(uri, line);
 		rq.setCodeRef(codeRef);
 		Set<String> tags = new HashSet<>(testCase.getTags());
