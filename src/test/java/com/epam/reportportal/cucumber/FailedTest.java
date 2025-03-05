@@ -93,13 +93,21 @@ public class FailedTest {
 		verify(client).startTestItem(same(suiteId), any());
 		verify(client).startTestItem(same(testId), any());
 		verify(client).startTestItem(same(stepId), any());
-		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(nestedStepId), finishCaptor.capture());
-		verify(client).finishTestItem(same(stepId), finishCaptor.capture());
-		verify(client).finishTestItem(same(testId), finishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> stepCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(nestedStepId), stepCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(stepId), scenarioCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> featureCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(same(testId), featureCaptor.capture());
 
-		List<FinishTestItemRQ> finishRqs = finishCaptor.getAllValues();
-		finishRqs.subList(0, finishRqs.size() - 1).forEach(e -> assertThat(e.getStatus(), equalTo(ItemStatus.FAILED.name())));
+		FinishTestItemRQ finishStepRequest = stepCaptor.getValue();
+		assertThat(finishStepRequest.getStatus(), equalTo(ItemStatus.FAILED.name()));
+
+		FinishTestItemRQ finishScenarioRequest = scenarioCaptor.getValue();
+		assertThat(finishScenarioRequest.getStatus(), equalTo(ItemStatus.FAILED.name()));
+
+		FinishTestItemRQ finishFeatureRequest = featureCaptor.getValue();
+		assertThat(finishFeatureRequest.getStatus(), nullValue());
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, atLeastOnce()).log(logCaptor.capture());
