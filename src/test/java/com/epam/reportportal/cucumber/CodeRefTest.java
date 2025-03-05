@@ -63,10 +63,10 @@ public class CodeRefTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(2).collect(Collectors.toList());
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
 	private final List<Pair<String, List<String>>> tests = testIds.stream()
-			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList())))
+			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
 
 	private final ListenerParameters parameters = TestUtils.standardParameters();
@@ -85,18 +85,17 @@ public class CodeRefTest {
 	private static final String SCENARIO_CODE_REFERENCES = "src/test/resources/features/belly.feature:5";
 
 	@Test
-	public void verify_code_reference_scenario_reporter() {
+	public void verify_code_reference() {
 		TestUtils.runTests(BellyTest.class);
 
-		verify(client, times(1)).startTestItem(any());
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
-		verify(client, times(1)).startTestItem(same(testIds.get(0)), captor.capture());
+		ArgumentCaptor<StartTestItemRQ> featureCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(featureCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(same(suiteId), scenarioCaptor.capture());
+		verify(client, times(3)).startTestItem(same(testIds.get(0)), any());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-
-		StartTestItemRQ feature = items.get(0);
-		StartTestItemRQ scenario = items.get(1);
+		StartTestItemRQ feature = featureCaptor.getValue();
+		StartTestItemRQ scenario = scenarioCaptor.getValue();
 
 		assertThat(feature.getCodeRef(), allOf(notNullValue(), equalTo(FEATURE_CODE_REFERENCES)));
 		assertThat(scenario.getCodeRef(), allOf(notNullValue(), equalTo(SCENARIO_CODE_REFERENCES)));
@@ -112,7 +111,7 @@ public class CodeRefTest {
 	);
 
 	@Test
-	public void verify_code_reference_two_features_step_reporter() {
+	public void verify_code_reference_two_features() {
 		TestUtils.runTests(TwoFeaturesTest.class);
 
 		verify(client, times(1)).startTestItem(any());

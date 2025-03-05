@@ -16,17 +16,13 @@
 package com.epam.reportportal.cucumber;
 
 import com.epam.reportportal.listeners.ItemType;
-import com.epam.reportportal.utils.MemoizingSupplier;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.plugin.event.HookTestStep;
 import io.cucumber.plugin.event.PickleStepTestStep;
 import io.cucumber.plugin.event.TestCase;
-import io.reactivex.Maybe;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Calendar;
-import java.util.Optional;
 
 /**
  * Cucumber reporter for ReportPortal that reports scenarios as test methods.
@@ -48,18 +44,8 @@ import java.util.Optional;
  * @author Vadzim Hushchanskou
  */
 public class ScenarioReporter extends AbstractReporter {
-	private static final String RP_STORY_TYPE = ItemType.SUITE.name();
 	private static final String RP_TEST_TYPE = ItemType.STORY.name();
 	private static final String RP_STEP_TYPE = ItemType.STEP.name();
-	private static final String DUMMY_ROOT_SUITE_NAME = "Root User Story";
-
-	protected MemoizingSupplier<Maybe<String>> rootSuiteId;
-
-	@Override
-	protected void beforeLaunch() {
-		super.beforeLaunch();
-		startRootItem();
-	}
 
 	@Override
 	@Nonnull
@@ -97,40 +83,5 @@ public class ScenarioReporter extends AbstractReporter {
 	@Nonnull
 	protected String getScenarioTestItemType() {
 		return RP_STEP_TYPE;
-	}
-
-	@Override
-	@Nonnull
-	protected Optional<Maybe<String>> getRootItemId() {
-		return Optional.of(rootSuiteId.get());
-	}
-
-	@Override
-	protected void afterLaunch() {
-		finishRootItem();
-		super.afterLaunch();
-	}
-
-	/**
-	 * Finish root suite
-	 */
-	protected void finishRootItem() {
-		if (rootSuiteId.isInitialized()) {
-			finishTestItem(rootSuiteId.get());
-			rootSuiteId = null;
-		}
-	}
-
-	/**
-	 * Start root suite
-	 */
-	protected void startRootItem() {
-		rootSuiteId = new MemoizingSupplier<>(() -> {
-			StartTestItemRQ rq = new StartTestItemRQ();
-			rq.setName(DUMMY_ROOT_SUITE_NAME);
-			rq.setStartTime(Calendar.getInstance().getTime());
-			rq.setType(RP_STORY_TYPE);
-			return getLaunch().startTestItem(rq);
-		});
 	}
 }

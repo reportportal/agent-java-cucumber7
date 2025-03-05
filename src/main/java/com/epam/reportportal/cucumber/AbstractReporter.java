@@ -638,9 +638,6 @@ public abstract class AbstractReporter implements ConcurrentEventListener {
 		return HookType.BEFORE == step.getHookType();
 	}
 
-	@Nonnull
-	protected abstract Optional<Maybe<String>> getRootItemId();
-
 	/**
 	 * Extension point to customize scenario creation event/request
 	 *
@@ -747,8 +744,7 @@ public abstract class AbstractReporter implements ConcurrentEventListener {
 	 */
 	@Nonnull
 	protected Maybe<String> startFeature(@Nonnull StartTestItemRQ startFeatureRq) {
-		Optional<Maybe<String>> root = getRootItemId();
-		return root.map(r -> getLaunch().startTestItem(r, startFeatureRq)).orElseGet(() -> getLaunch().startTestItem(startFeatureRq));
+		return getLaunch().startTestItem(startFeatureRq);
 	}
 
 	private void addToTree(Feature feature, Maybe<String> featureId) {
@@ -767,7 +763,6 @@ public abstract class AbstractReporter implements ConcurrentEventListener {
 				uri, f -> {
 					//noinspection ReactiveStreamsUnusedPublisher
 					if (f.getId().equals(Maybe.empty())) {
-						getRootItemId(); // trigger root item creation
 						StartTestItemRQ featureRq = buildStartFeatureRequest(f.getFeature(), uri);
 						f.setId(startFeature(featureRq));
 						if (getLaunch().getParameters().isCallbackReportingEnabled()) {
