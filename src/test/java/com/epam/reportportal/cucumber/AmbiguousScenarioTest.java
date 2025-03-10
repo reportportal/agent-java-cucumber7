@@ -26,7 +26,6 @@ import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,13 +50,9 @@ public class AmbiguousScenarioTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(1).collect(Collectors.toList());
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(1).collect(Collectors.toList());
-	private final List<Pair<String, String>> nestedSteps = nestedStepIds.stream()
-			.map(s -> Pair.of(stepIds.get(0), s))
-			.collect(Collectors.toList());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -72,23 +67,22 @@ public class AmbiguousScenarioTest {
 
 	@Test
 	public void verify_scenario_reporter_ambiguous_item() {
-		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.runTests(SimpleTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(stepIds.get(0)), stepCaptor.capture());
+		verify(client, times(1)).startTestItem(same(testId), stepCaptor.capture());
 
 		StartTestItemRQ rq = stepCaptor.getValue();
 		assertThat(rq.getType(), equalTo("STEP"));
 
 		ArgumentCaptor<FinishTestItemRQ> stepFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(nestedStepIds.get(0)), stepFinishCaptor.capture());
+		verify(client, times(1)).finishTestItem(same(stepIds.get(0)), stepFinishCaptor.capture());
 
 		FinishTestItemRQ finishRq = stepFinishCaptor.getValue();
 		assertThat(finishRq.getStatus(), equalTo("SKIPPED"));
 
 		ArgumentCaptor<FinishTestItemRQ> testFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(1)).finishTestItem(same(stepIds.get(0)), testFinishCaptor.capture());
+		verify(client, times(1)).finishTestItem(same(testId), testFinishCaptor.capture());
 
 		finishRq = testFinishCaptor.getValue();
 		assertThat(finishRq.getStatus(), equalTo("SKIPPED"));
