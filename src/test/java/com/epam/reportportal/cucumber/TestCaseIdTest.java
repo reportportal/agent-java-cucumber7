@@ -59,12 +59,10 @@ public class TestCaseIdTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
-	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
-
-	public final List<Pair<String, String>> nestedSteps = stepIds.stream()
-			.flatMap(s -> Stream.generate(() -> Pair.of(s, CommonUtils.namedId("nested_step"))).limit(3))
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList());
+	private final List<Pair<String, List<String>>> stepIds = testIds.stream()
+			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
@@ -74,7 +72,7 @@ public class TestCaseIdTest {
 
 	@BeforeEach
 	public void setup() {
-		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
+		TestUtils.mockLaunch(client, launchId, suiteId, stepIds);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
@@ -88,9 +86,8 @@ public class TestCaseIdTest {
 		TestUtils.runTests(RunBellyTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(testId), captor.capture());
+		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
 
 		StartTestItemRQ rq = captor.getValue();
 		assertThat(rq.getTestCaseId(), equalTo("src/test/resources/features/belly.feature:5"));
@@ -102,13 +99,11 @@ public class TestCaseIdTest {
 
 	@Test
 	public void verify_test_case_id_scenario_outline() {
-		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.runTests(ScenarioOutlineTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(3)).startTestItem(same(testId), captor.capture());
+		verify(client, times(3)).startTestItem(same(suiteId), captor.capture());
 
 		List<StartTestItemRQ> requests = captor.getAllValues();
 		IntStream.range(0, requests.size()).forEach(i -> assertThat(requests.get(i).getTestCaseId(), equalTo(TEST_CASE_IDS[i])));
