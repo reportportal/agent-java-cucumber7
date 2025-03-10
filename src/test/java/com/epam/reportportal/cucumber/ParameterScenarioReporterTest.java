@@ -73,23 +73,17 @@ public class ParameterScenarioReporterTest {
 	}
 
 	private static final String DOCSTRING_PARAM = "My very long parameter\nWith some new lines";
-	private static final String TABLE_PARAM = MarkdownUtils.formatDataTable(Arrays.asList(Arrays.asList("key", "value"),
+	private static final String TABLE_PARAM = MarkdownUtils.formatDataTable(Arrays.asList(
+			Arrays.asList("key", "value"),
 			Arrays.asList("myKey", "myValue")
 	));
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
-	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
-
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("nested_step_"))
-			.limit(9)
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(2).collect(Collectors.toList());
+	private final List<Pair<String, List<String>>> stepIds = testIds.stream()
+			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
-
-	private final List<Pair<String, String>> nestedStepMap = Stream.concat(IntStream.range(0, 4)
-					.mapToObj(i -> Pair.of(stepIds.get(0), nestedStepIds.get(i))),
-			IntStream.range(4, 9).mapToObj(i -> Pair.of(stepIds.get(1), nestedStepIds.get(i)))
-	).collect(Collectors.toList());
 
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 	private final ListenerParameters parameters = TestUtils.standardParameters();
@@ -98,15 +92,15 @@ public class ParameterScenarioReporterTest {
 
 	@BeforeEach
 	public void initLaunch() {
-		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
-		TestUtils.mockNestedSteps(client, nestedStepMap);
+		TestUtils.mockLaunch(client, launchId, suiteId, stepIds);
 		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
 	public static final List<Pair<String, Object>> PARAMETERS = Arrays.asList(Pair.of("str", "\"first\""), Pair.of("parameters", 123));
 
-	public static final List<String> STEP_NAMES = Arrays.asList(String.format("When I have parameter %s", PARAMETERS.get(0).getValue()),
+	public static final List<String> STEP_NAMES = Arrays.asList(
+			String.format("When I have parameter %s", PARAMETERS.get(0).getValue()),
 			String.format("Then I emit number %s on level info", PARAMETERS.get(1).getValue().toString())
 	);
 
@@ -115,10 +109,9 @@ public class ParameterScenarioReporterTest {
 		TestUtils.runTests(OneSimpleAndOneScenarioOutlineScenarioReporterTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(2)).startTestItem(same(testId), any());
+		verify(client, times(2)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(3)).startTestItem(same(stepIds.get(1)), captor.capture());
+		verify(client, times(3)).startTestItem(same(testIds.get(1)), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues()
 				.stream()
@@ -136,7 +129,7 @@ public class ParameterScenarioReporterTest {
 		TestUtils.runTests(DocstringParameterTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(stepIds.get(0)), captor.capture());
+		verify(client, times(2)).startTestItem(same(testIds.get(0)), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 		List<ParameterResource> params = items.get(1).getParameters();
@@ -147,7 +140,7 @@ public class ParameterScenarioReporterTest {
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, times(3)).log(logCaptor.capture());
-		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(nestedStepIds.get(1))).stream()
+		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(stepIds.get(0).getValue().get(1))).stream()
 				.map(SaveLogRQ::getMessage)
 				.collect(Collectors.toList());
 
@@ -161,7 +154,7 @@ public class ParameterScenarioReporterTest {
 		TestUtils.runTests(DataTableParameterTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(stepIds.get(0)), captor.capture());
+		verify(client, times(1)).startTestItem(same(testIds.get(0)), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 		List<ParameterResource> params = items.get(0).getParameters();
@@ -172,7 +165,7 @@ public class ParameterScenarioReporterTest {
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, times(2)).log(logCaptor.capture());
-		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(nestedStepIds.get(0))).stream()
+		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(stepIds.get(0).getValue().get(0))).stream()
 				.map(SaveLogRQ::getMessage)
 				.collect(Collectors.toList());
 

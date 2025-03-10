@@ -68,7 +68,6 @@ public class TestUtils {
 	}
 
 	@SuppressWarnings("unchecked")
-
 	public static <T extends Collection<String>> void mockLaunch(ReportPortalClient client, String launchUuid, String suiteUuid,
 			Collection<Pair<String, T>> testSteps) {
 		when(client.startLaunch(any())).thenReturn(Maybe.just(new StartLaunchRS(launchUuid, 1L)));
