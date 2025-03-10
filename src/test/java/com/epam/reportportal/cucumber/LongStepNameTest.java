@@ -51,10 +51,9 @@ public class LongStepNameTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final List<String> stepIds = Collections.singletonList(CommonUtils.namedId("step_"));
-	private final Pair<String, String> nestedStep = Pair.of(stepIds.get(0), CommonUtils.namedId("nested_step_"));
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -64,7 +63,6 @@ public class LongStepNameTest {
 	@BeforeEach
 	public void setup() {
 		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
-		TestUtils.mockNestedSteps(client, nestedStep);
 		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
@@ -79,10 +77,8 @@ public class LongStepNameTest {
 		TestUtils.runTests(LongStepTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client).startTestItem(same(stepIds.get(0)), captor.capture());
+		verify(client).startTestItem(same(testId), captor.capture());
 
 		assertThat(captor.getValue().getName(), allOf(hasLength(1024), endsWith("...")));
 	}
 }
-
-
