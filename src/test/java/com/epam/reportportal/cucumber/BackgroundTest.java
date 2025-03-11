@@ -58,24 +58,13 @@ public class BackgroundTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(2).collect(Collectors.toList());
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(2).collect(Collectors.toList());
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(4).collect(Collectors.toList());
 
 	private final List<Pair<String, List<String>>> steps = IntStream.range(0, testIds.size())
 			.mapToObj(i -> Pair.of(testIds.get(i), stepIds.subList(i * 2, i * 2 + 2)))
 			.collect(Collectors.toList());
-
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("nested_step_"))
-			.limit(4)
-			.collect(Collectors.toList());
-
-	private final List<Pair<String, String>> nestedSteps = Stream.of(
-			Pair.of(stepIds.get(0), nestedStepIds.get(0)),
-			Pair.of(stepIds.get(0), nestedStepIds.get(1)),
-			Pair.of(stepIds.get(1), nestedStepIds.get(2)),
-			Pair.of(stepIds.get(1), nestedStepIds.get(3))
-	).collect(Collectors.toList());
 
 	private final ListenerParameters params = standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -97,52 +86,66 @@ public class BackgroundTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void verify_background_scenario_reporter() {
-		mockNestedSteps(client, nestedSteps);
 		runTests(MyBackgroundTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(2)).startTestItem(same(testIds.get(0)), any());
+		verify(client, times(2)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> firstStepStarts = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(stepIds.get(0)), firstStepStarts.capture());
+		verify(client, times(2)).startTestItem(same(testIds.get(0)), firstStepStarts.capture());
 		ArgumentCaptor<StartTestItemRQ> secondStepStarts = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(stepIds.get(1)), secondStepStarts.capture());
+		verify(client, times(2)).startTestItem(same(testIds.get(1)), secondStepStarts.capture());
 		verify(client, times(4)).log(any(List.class));
 
-		assertThat(firstStepStarts.getAllValues()
-				.stream()
-				.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
-				.collect(Collectors.toList()), hasSize(1));
+		assertThat(
+				firstStepStarts.getAllValues()
+						.stream()
+						.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
+						.collect(Collectors.toList()), hasSize(1)
+		);
 
-		assertThat(secondStepStarts.getAllValues()
-				.stream()
-				.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
-				.collect(Collectors.toList()), hasSize(1));
+		assertThat(
+				secondStepStarts.getAllValues()
+						.stream()
+						.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
+						.collect(Collectors.toList()), hasSize(1)
+		);
 
 		ArgumentCaptor<FinishTestItemRQ> stepFinishes = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(nestedStepIds.get(0)), stepFinishes.capture());
-		verify(client).finishTestItem(same(nestedStepIds.get(1)), stepFinishes.capture());
-		verify(client).finishTestItem(same(nestedStepIds.get(2)), stepFinishes.capture());
-		verify(client).finishTestItem(same(nestedStepIds.get(3)), stepFinishes.capture());
+		verify(client).finishTestItem(same(stepIds.get(0)), stepFinishes.capture());
+		verify(client).finishTestItem(same(stepIds.get(1)), stepFinishes.capture());
+		verify(client).finishTestItem(same(stepIds.get(2)), stepFinishes.capture());
+		verify(client).finishTestItem(same(stepIds.get(3)), stepFinishes.capture());
 
-		List<Date> endDates = stepFinishes.getAllValues().stream().map(FinishExecutionRQ::getEndTime).filter(Objects::nonNull)
+		List<Date> endDates = stepFinishes.getAllValues()
+				.stream()
+				.map(FinishExecutionRQ::getEndTime)
+				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 		assertThat(endDates, hasSize(4));
 
-		List<String> statuses = stepFinishes.getAllValues().stream().map(FinishExecutionRQ::getStatus).filter(Objects::nonNull)
+		List<String> statuses = stepFinishes.getAllValues()
+				.stream()
+				.map(FinishExecutionRQ::getStatus)
+				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 		assertThat(statuses, hasSize(4));
 		assertThat(statuses, containsInAnyOrder(Collections.nCopies(4, equalTo(ItemStatus.PASSED.name()))));
 
 		ArgumentCaptor<FinishTestItemRQ> testFinishes = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(stepIds.get(0)), testFinishes.capture());
-		verify(client).finishTestItem(same(stepIds.get(1)), testFinishes.capture());
+		verify(client).finishTestItem(same(testIds.get(0)), testFinishes.capture());
+		verify(client).finishTestItem(same(testIds.get(1)), testFinishes.capture());
 
-		endDates = testFinishes.getAllValues().stream().map(FinishExecutionRQ::getEndTime).filter(Objects::nonNull)
+		endDates = testFinishes.getAllValues()
+				.stream()
+				.map(FinishExecutionRQ::getEndTime)
+				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 		assertThat(endDates, hasSize(2));
 
-		statuses = testFinishes.getAllValues().stream().map(FinishExecutionRQ::getStatus).filter(Objects::nonNull)
+		statuses = testFinishes.getAllValues()
+				.stream()
+				.map(FinishExecutionRQ::getStatus)
+				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 		assertThat(statuses, hasSize(2));
 		assertThat(statuses, containsInAnyOrder(Collections.nCopies(2, equalTo(ItemStatus.PASSED.name()))));
