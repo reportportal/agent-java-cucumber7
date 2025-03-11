@@ -16,7 +16,6 @@
 
 package com.epam.reportportal.cucumber;
 
-import com.epam.reportportal.annotations.TestCaseId;
 import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
@@ -31,7 +30,6 @@ import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.reportportal.utils.http.ContentType;
 import com.epam.reportportal.utils.properties.SystemAttributesExtractor;
-import com.epam.reportportal.utils.reflect.Accessible;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.ParameterResource;
@@ -76,17 +74,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioReporter.class);
 	private static final ThreadLocal<ScenarioReporter> INSTANCES = new InheritableThreadLocal<>();
 
-	private static final String NO_NAME = "No name";
 	private static final String AGENT_PROPERTIES_FILE = "agent.properties";
-	private static final String DEFINITION_MATCH_FIELD_NAME = "definitionMatch";
-	private static final String STEP_DEFINITION_FIELD_NAME = "stepDefinition";
-	private static final String GET_LOCATION_METHOD_NAME = "getLocation";
 	private static final String COLON_INFIX = ": ";
 	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
 	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
 
 	protected static final URI WORKING_DIRECTORY = new File(System.getProperty("user.dir")).toURI();
-	protected static final String METHOD_OPENING_BRACKET = "(";
 	protected static final String DOCSTRING_DECORATOR = "\n\"\"\"\n";
 	private static final String ERROR_FORMAT = "Error:\n%s";
 
@@ -260,22 +253,31 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
+	 * Returns code reference for feature files by URI and text line number
+	 *
+	 * @param testCase Cucumber's TestCase object
+	 * @return a code reference
+	 */
+	@Nonnull
+	protected String getCodeRef(@Nonnull TestCase testCase) {
+		return WORKING_DIRECTORY.relativize(testCase.getUri()) + "/[" + testCase.getKeyword().toUpperCase(Locale.ROOT) + ":"
+				+ testCase.getName() + "]";
+	}
+
+	/**
 	 * Extension point to customize scenario creation event/request
 	 *
 	 * @param testCase Cucumber's TestCase object
-	 * @param name     the scenario name
-	 * @param uri      the scenario feature file relative path
-	 * @param line     the scenario text line number
 	 * @return start test item request ready to send on RP
 	 */
 	@Nonnull
-	protected StartTestItemRQ buildStartScenarioRequest(@Nonnull TestCase testCase, @Nonnull String name, @Nonnull URI uri, int line) {
+	protected StartTestItemRQ buildStartScenarioRequest(@Nonnull TestCase testCase) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(name);
-		String codeRef = getCodeRef(uri, line);
+		rq.setName(buildName(testCase.getKeyword(), ScenarioReporter.COLON_INFIX, testCase.getName()));
+		String codeRef = getCodeRef(testCase);
 		rq.setCodeRef(codeRef);
 		Set<String> tags = new HashSet<>(testCase.getTags());
-		execute(uri, f -> tags.removeAll(f.getTags()));
+		execute(testCase.getUri(), f -> tags.removeAll(f.getTags()));
 		rq.setAttributes(extractAttributes(tags));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		String type = ItemType.STEP.name();
@@ -355,28 +357,34 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Return a Test Case ID for mapped code
+	 * Returns a list of parameters for a step
 	 *
-	 * @param testStep Cucumber's TestStep object
-	 * @param codeRef  a code reference
-	 * @return Test Case ID entity or null if it's not possible to calculate
+	 * @param testStep Cucumber's Step object
+	 * @return a list of parameters or empty list if none
 	 */
-	@Nullable
-	@SuppressWarnings("unchecked")
-	protected TestCaseIdEntry getTestCaseId(@Nonnull TestStep testStep, @Nullable String codeRef) {
-		List<Argument> arguments = ((PickleStepTestStep) testStep).getDefinitionArgument();
+	@Nonnull
+	protected List<ParameterResource> getParameters(@Nonnull TestStep testStep) {
+		if (!(testStep instanceof PickleStepTestStep)) {
+			return Collections.emptyList();
+		}
 
-		return ofNullable(codeRef).flatMap(r -> {
-			Pair<String, String> splitCodeRef = parseJavaCodeRef(codeRef);
-			Optional<Class<?>> testStepClass = getStepClass(splitCodeRef.getKey(), codeRef);
-			return testStepClass.flatMap(c -> getStepMethod(c, splitCodeRef.getValue()))
-					.map(m -> TestCaseIdUtils.getTestCaseId(
-							m.getAnnotation(TestCaseId.class),
-							m,
-							codeRef,
-							(List<Object>) ARGUMENTS_TRANSFORM.apply(arguments)
-					));
-		}).orElseGet(() -> getTestCaseId(codeRef, arguments));
+		PickleStepTestStep pickleStepTestStep = (PickleStepTestStep) testStep;
+		List<Argument> arguments = pickleStepTestStep.getDefinitionArgument();
+		List<Pair<String, String>> params = ofNullable(arguments).map(a -> a.stream()
+				.map(arg -> Pair.of(arg.getParameterTypeName(), arg.getValue()))
+				.collect(Collectors.toList())).orElse(new ArrayList<>());
+		ofNullable(pickleStepTestStep.getStep().getArgument()).ifPresent(a -> {
+			String value;
+			if (a instanceof DocStringArgument) {
+				value = ((DocStringArgument) a).getContent();
+			} else if (a instanceof DataTableArgument) {
+				value = formatDataTable(((DataTableArgument) a).cells());
+			} else {
+				value = a.toString();
+			}
+			params.add(Pair.of("arg", value));
+		});
+		return ParameterUtils.getParameters((String) null, params);
 	}
 
 	/**
@@ -395,11 +403,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		rq.setDescription(buildMultilineArgument(testStep));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("STEP");
-		String codeRef = getCodeRef(testStep);
-		rq.setParameters(getParameters(codeRef, testStep));
-		rq.setCodeRef(codeRef);
-		rq.setTestCaseId(ofNullable(getTestCaseId(testStep, codeRef)).map(TestCaseIdEntry::getId).orElse(null));
-		ofNullable(codeRef).ifPresent(c -> rq.setAttributes(getAttributes(c)));
+		rq.setParameters(getParameters(testStep));
 		rq.setHasStats(false);
 		return rq;
 	}
@@ -433,9 +437,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					String stepPrefix = step.getStep().getLocation().getLine() < s.getLine() ? BACKGROUND_PREFIX : null;
 					StartTestItemRQ rq = buildStartStepRequest(step, stepPrefix, step.getStep().getKeyword());
 					Maybe<String> stepId = startStep(s.getId(), rq);
-					if (rq.isHasStats()) {
-						descriptionsMap.put(stepId, ofNullable(rq.getDescription()).orElse(StringUtils.EMPTY));
-					}
 					s.setStepId(stepId);
 					String stepText = step.getStep().getText();
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {
@@ -630,17 +631,15 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	/**
 	 * Extension point to customize scenario creation event/request
 	 *
-	 * @param rule    the rule node
-	 * @param codeRef the rule code reference
+	 * @param rule the rule node
 	 * @return start test item request ready to send on RP
 	 */
 	@Nonnull
-	protected StartTestItemRQ buildStartRuleRequest(@Nonnull Node.Rule rule, @Nullable String codeRef) {
-		String ruleKeyword = rule.getKeyword().orElse("");
-		String ruleName = rule.getName().orElse(NO_NAME);
+	protected StartTestItemRQ buildStartRuleRequest(@Nonnull Node.Rule rule) {
+		String ruleKeyword = rule.getKeyword().orElse("Rule");
+		String ruleName = rule.getName().orElse(null);
 		StartTestItemRQ rq = new StartTestItemRQ();
-		rq.setName(buildName(ruleKeyword, ScenarioReporter.COLON_INFIX, ruleName));
-		rq.setCodeRef(codeRef);
+		rq.setName(ruleName != null ? buildName(ruleKeyword, COLON_INFIX, ruleName) : ruleKeyword);
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setType("SUITE");
 		return rq;
@@ -665,7 +664,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param scenario current scenario object
 	 */
 	protected void beforeScenario(@Nonnull Feature feature, @Nonnull TestCase scenario) {
-		String scenarioName = buildName(scenario.getKeyword(), ScenarioReporter.COLON_INFIX, scenario.getName());
 		execute(
 				scenario, (f, s) -> {
 					Optional<RuleContext> rule = s.getRule();
@@ -673,19 +671,13 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					if (!currentRule.equals(rule)) {
 						if (currentRule.isEmpty()) {
 							rule.ifPresent(r -> {
-								r.setId(startRule(
-										f.getId(),
-										buildStartRuleRequest(r.getRule(), getCodeRef(feature.getUri(), r.getLine()))
-								));
+								r.setId(startRule(f.getId(), buildStartRuleRequest(r.getRule())));
 								f.setCurrentRule(r);
 							});
 						} else {
 							finishTestItem(currentRule.get().getId());
 							rule.ifPresent(r -> {
-								r.setId(startRule(
-										f.getId(),
-										buildStartRuleRequest(r.getRule(), getCodeRef(feature.getUri(), r.getLine()))
-								));
+								r.setId(startRule(f.getId(), buildStartRuleRequest(r.getRule())));
 								f.setCurrentRule(r);
 							});
 						}
@@ -693,8 +685,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					Maybe<String> rootId = rule.map(RuleContext::getId).orElseGet(f::getId);
 
 					// If it's a ScenarioOutline use Example's line number as code reference to detach one Test Item from another
-					int codeLine = s.getExample().map(e -> e.getLocation().getLine()).orElse(s.getLine());
-					StartTestItemRQ startTestItemRQ = buildStartScenarioRequest(scenario, scenarioName, s.getUri(), codeLine);
+					StartTestItemRQ startTestItemRQ = buildStartScenarioRequest(scenario);
 					s.setId(startScenario(rootId, startTestItemRQ));
 					descriptionsMap.put(s.getId(), ofNullable(startTestItemRQ.getDescription()).orElse(StringUtils.EMPTY));
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {
@@ -702,6 +693,17 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					}
 				}
 		);
+	}
+
+	/**
+	 * Returns code reference for feature files by URI and text line number
+	 *
+	 * @param feature a Cucumber's Feature object
+	 * @return a code reference
+	 */
+	@Nonnull
+	protected String getCodeRef(@Nonnull Feature feature) {
+		return WORKING_DIRECTORY.relativize(feature.getUri()).toString();
 	}
 
 	/**
@@ -714,10 +716,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Nonnull
 	protected StartTestItemRQ buildStartFeatureRequest(@Nonnull Feature feature, @Nonnull URI uri) {
 		String featureKeyword = feature.getKeyword().orElse("");
-		String featureName = feature.getName().orElse(NO_NAME);
+		String featureName = feature.getName().orElse(getCodeRef(feature));
 		StartTestItemRQ startFeatureRq = new StartTestItemRQ();
 		startFeatureRq.setDescription(getDescription(feature, uri));
-		startFeatureRq.setCodeRef(getCodeRef(uri, 0));
 		startFeatureRq.setName(buildName(featureKeyword, ScenarioReporter.COLON_INFIX, featureName));
 		execute(feature.getUri(), f -> startFeatureRq.setAttributes(extractAttributes(f.getTags())));
 		startFeatureRq.setStartTime(Calendar.getInstance().getTime());
@@ -769,10 +770,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected void handleSourceEvents(TestSourceParsed parseEvent) {
-		URI uri = parseEvent.getUri();
 		parseEvent.getNodes().forEach(n -> {
 			if (n instanceof Feature) {
-				featureContextMap.put(uri, new FeatureContext(uri, (Feature) n));
+				Feature feature = (Feature) n;
+				featureContextMap.put(feature.getUri(), new FeatureContext(feature));
 			} else {
 				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
 			}
@@ -1043,53 +1044,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return marg.toString();
 	}
 
-	/**
-	 * Returns code reference for mapped code
-	 *
-	 * @param testStep Cucumber's TestStep object
-	 * @return a code reference, or null if not possible to determine (ambiguous, undefined, etc.)
-	 */
-	@Nullable
-	protected String getCodeRef(@Nonnull TestStep testStep) {
-		String cucumberLocation = testStep.getCodeLocation();
-		try {
-			Object stepDefinitionMatch = Accessible.on(testStep).field(DEFINITION_MATCH_FIELD_NAME).getValue();
-			if (stepDefinitionMatch != null) {
-				Object javaStepDefinition = Accessible.on(stepDefinitionMatch).field(STEP_DEFINITION_FIELD_NAME).getValue();
-				if (javaStepDefinition != null) {
-					Object codeLocationObject = Accessible.on(javaStepDefinition).method(GET_LOCATION_METHOD_NAME).invoke();
-					if (codeLocationObject != null) {
-						String codeLocation = codeLocationObject.toString();
-						if (isNotBlank(codeLocation)) {
-							int openingBracketIndex = codeLocation.indexOf(METHOD_OPENING_BRACKET);
-							if (openingBracketIndex > 0) {
-								return codeLocation.substring(0, codeLocation.indexOf(METHOD_OPENING_BRACKET));
-							} else {
-								return codeLocation;
-							}
-						}
-					}
-				}
-			}
-		} catch (Throwable e) {
-			LOGGER.error("Unable to get java code reference for the Test Step: {}", cucumberLocation, e);
-			return cucumberLocation;
-		}
-		return cucumberLocation;
-	}
-
-	/**
-	 * Returns code reference for feature files by URI and text line number
-	 *
-	 * @param uri  a feature URI
-	 * @param line a scenario line number
-	 * @return a code reference
-	 */
-	@Nonnull
-	protected String getCodeRef(@Nonnull URI uri, int line) {
-		return WORKING_DIRECTORY.relativize(uri) + ":" + line;
-	}
-
 	@Nonnull
 	private static Pair<String, String> parseJavaCodeRef(@Nonnull String codeRef) {
 		int lastDelimiterIndex = codeRef.lastIndexOf('.');
@@ -1114,54 +1068,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Nonnull
 	private static Optional<Method> getStepMethod(@Nonnull Class<?> stepClass, @Nullable String methodName) {
 		return Arrays.stream(stepClass.getMethods()).filter(m -> m.getName().equals(methodName)).findAny();
-	}
-
-	/**
-	 * Returns static attributes defined by {@link Attributes} annotation in code.
-	 *
-	 * @param codeRef - a method reference to read parameters
-	 * @return a set of attributes or null if no such method provided by the match object
-	 */
-	@Nullable
-	protected Set<ItemAttributesRQ> getAttributes(@Nonnull String codeRef) {
-		Pair<String, String> splitCodeRef = parseJavaCodeRef(codeRef);
-		Optional<Class<?>> testStepClass = getStepClass(splitCodeRef.getKey(), codeRef);
-		return testStepClass.flatMap(c -> getStepMethod(c, splitCodeRef.getValue()))
-				.map(m -> m.getAnnotation(Attributes.class))
-				.map(AttributeParser::retrieveAttributes)
-				.orElse(null);
-	}
-
-	/**
-	 * Returns a list of parameters for a step
-	 *
-	 * @param codeRef  a method code reference to retrieve parameter types
-	 * @param testStep Cucumber's Step object
-	 * @return a list of parameters or empty list if none
-	 */
-	@Nonnull
-	protected List<ParameterResource> getParameters(@Nullable String codeRef, @Nonnull TestStep testStep) {
-		if (!(testStep instanceof PickleStepTestStep)) {
-			return Collections.emptyList();
-		}
-
-		PickleStepTestStep pickleStepTestStep = (PickleStepTestStep) testStep;
-		List<Argument> arguments = pickleStepTestStep.getDefinitionArgument();
-		List<Pair<String, String>> params = ofNullable(arguments).map(a -> a.stream()
-				.map(arg -> Pair.of(arg.getParameterTypeName(), arg.getValue()))
-				.collect(Collectors.toList())).orElse(new ArrayList<>());
-		ofNullable(pickleStepTestStep.getStep().getArgument()).ifPresent(a -> {
-			String value;
-			if (a instanceof DocStringArgument) {
-				value = ((DocStringArgument) a).getContent();
-			} else if (a instanceof DataTableArgument) {
-				value = formatDataTable(((DataTableArgument) a).cells());
-			} else {
-				value = a.toString();
-			}
-			params.add(Pair.of("arg", value));
-		});
-		return ParameterUtils.getParameters(codeRef, params);
 	}
 
 	/**

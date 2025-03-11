@@ -28,7 +28,6 @@ import static java.util.Optional.ofNullable;
 
 public class FeatureContext {
 
-	private final URI uri;
 	private final Feature feature;
 	private final Map<Integer, ScenarioContext> scenarios = new HashMap<>();
 	private final Set<String> tags;
@@ -65,10 +64,9 @@ public class FeatureContext {
 		nodes.forEach(n -> handleNode(ruleQueue, uri, n));
 	}
 
-	public FeatureContext(@Nonnull URI featureUri, @Nonnull Feature featureNode) {
-		uri = featureUri;
+	public FeatureContext(@Nonnull Feature featureNode) {
 		feature = featureNode;
-		handleNodes(featureUri, featureNode.elements());
+		handleNodes(feature.getUri(), featureNode.elements());
 		tags = Utils.getTags(featureNode);
 	}
 
@@ -79,7 +77,7 @@ public class FeatureContext {
 
 	@Nonnull
 	public URI getUri() {
-		return uri;
+		return feature.getUri();
 	}
 
 	@Nonnull

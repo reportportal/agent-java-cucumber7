@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +39,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -59,6 +61,9 @@ public class RuleKeywordTest {
 					Stream.of(Pair.of(ruleIds.get(1), testIds.subList(2, 3)))
 			)
 			.collect(Collectors.toList());
+	private final List<Pair<String, String>> steps = testIds.stream()
+			.flatMap(testId -> Collections.nCopies(2, testId).stream().map(id -> Pair.of(id, CommonUtils.namedId("step_"))))
+			.collect(Collectors.toList());
 
 	// Scenario reporter
 	private final ListenerParameters params = TestUtils.standardParameters();
@@ -69,10 +74,8 @@ public class RuleKeywordTest {
 	@Test
 	public void verify_rule_keyword_scenario_reporter() {
 		TestUtils.mockLaunch(client, launchId, featureId, tests);
-		TestUtils.mockNestedSteps(
-				client,
-				tests.stream().flatMap(e -> e.getValue().stream().map(v -> Pair.of(e.getKey(), v))).collect(Collectors.toList())
-		);
+		TestUtils.mockNestedSteps(client, steps);
+		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 
 		TestUtils.runTests(SimpleTest.class);
@@ -83,7 +86,9 @@ public class RuleKeywordTest {
 
 		List<StartTestItemRQ> ruleRqs = ruleRqCapture.getAllValues();
 		assertThat(ruleRqs.get(0).getName(), equalTo("Rule: The first rule"));
+		assertThat(ruleRqs.get(0).getCodeRef(), nullValue());
 		assertThat(ruleRqs.get(1).getName(), equalTo("Rule: The second rule"));
+		assertThat(ruleRqs.get(1).getCodeRef(), nullValue());
 		ruleRqs.forEach(r -> assertThat(r.getType(), equalTo("SUITE")));
 
 		ArgumentCaptor<StartTestItemRQ> testRqCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);

@@ -74,12 +74,11 @@ public class CodeRefTest {
 	@BeforeEach
 	public void initLaunch() {
 		TestUtils.mockLaunch(client, launchId, suiteId, tests);
+		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
-	private static final String FEATURE_CODE_REFERENCES = "src/test/resources/features/belly.feature:0";
-
-	private static final String SCENARIO_CODE_REFERENCES = "src/test/resources/features/belly.feature:5";
+	private static final String SCENARIO_CODE_REFERENCES = "src/test/resources/features/belly.feature/[SCENARIO:a few cukes]";
 
 	@Test
 	public void verify_code_reference() {
@@ -94,18 +93,13 @@ public class CodeRefTest {
 		StartTestItemRQ feature = featureCaptor.getValue();
 		StartTestItemRQ scenario = scenarioCaptor.getValue();
 
-		assertThat(feature.getCodeRef(), allOf(notNullValue(), equalTo(FEATURE_CODE_REFERENCES)));
+		assertThat(feature.getCodeRef(), nullValue());
 		assertThat(scenario.getCodeRef(), allOf(notNullValue(), equalTo(SCENARIO_CODE_REFERENCES)));
 	}
 
-	private static final List<String> TWO_FEATURES_CODE_REFERENCES = Arrays.asList(
-			"src/test/resources/features/TwoScenarioInOne.feature:3",
-			"src/test/resources/features/TwoScenarioInOne.feature:7"
-	);
-
-	private static final List<String> TWO_STEPS_CODE_REFERENCE = Arrays.asList(
-			"com.epam.reportportal.cucumber.integration.feature.EmptySteps.i_have_empty_step",
-			"com.epam.reportportal.cucumber.integration.feature.EmptySteps.i_have_another_empty_step"
+	private static final List<String> TWO_SCENARIOS_FEATURE_CODE_REFERENCES = Arrays.asList(
+			"src/test/resources/features/TwoScenarioInOne.feature/[SCENARIO:The first scenario]",
+			"src/test/resources/features/TwoScenarioInOne.feature/[SCENARIO:The second scenario]"
 	);
 
 	@Test
@@ -122,10 +116,12 @@ public class CodeRefTest {
 		List<StartTestItemRQ> suites = items.subList(0, 2);
 		List<StartTestItemRQ> steps = items.subList(2, items.size());
 
-		IntStream.range(0, TWO_FEATURES_CODE_REFERENCES.size())
-				.forEach(i -> assertThat(suites.get(i).getCodeRef(), allOf(notNullValue(), equalTo(TWO_FEATURES_CODE_REFERENCES.get(i)))));
+		IntStream.range(0, TWO_SCENARIOS_FEATURE_CODE_REFERENCES.size())
+				.forEach(i -> assertThat(
+						suites.get(i).getCodeRef(),
+						allOf(notNullValue(), equalTo(TWO_SCENARIOS_FEATURE_CODE_REFERENCES.get(i)))
+				));
 
-		IntStream.range(0, TWO_STEPS_CODE_REFERENCE.size())
-				.forEach(i -> assertThat(steps.get(i).getCodeRef(), allOf(notNullValue(), equalTo(TWO_STEPS_CODE_REFERENCE.get(i)))));
+		IntStream.range(0, steps.size()).forEach(i -> assertThat(steps.get(i).getCodeRef(), nullValue()));
 	}
 }
