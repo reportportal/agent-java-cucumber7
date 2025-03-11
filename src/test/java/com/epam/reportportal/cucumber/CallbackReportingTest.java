@@ -47,10 +47,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.*;
 
-/**
- * @author <a href="mailto:ivan_budayeu@epam.com">Ivan Budayeu</a>
- */
-public class CallbackReportingIntegrationTest {
+public class CallbackReportingTest {
 
 	@CucumberOptions(features = "src/test/resources/features/CallbackReportingScenario.feature", glue = {
 			"com.epam.reportportal.cucumber.integration.callback.scenario" }, plugin = { "pretty",
