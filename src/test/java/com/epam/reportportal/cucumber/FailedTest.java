@@ -29,12 +29,10 @@ import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
 import okhttp3.MultipartBody;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,11 +63,9 @@ public class FailedTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final String stepId = CommonUtils.namedId("step_");
-	private final String nestedStepId = CommonUtils.namedId("nested_");
-	private final List<Pair<String, String>> nestedSteps = Collections.singletonList(Pair.of(stepId, nestedStepId));
 
 	private final ListenerParameters parameters = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -79,7 +75,6 @@ public class FailedTest {
 	@BeforeEach
 	public void initLaunch() {
 		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepId);
-		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
@@ -92,13 +87,12 @@ public class FailedTest {
 		verify(client).startTestItem(any());
 		verify(client).startTestItem(same(suiteId), any());
 		verify(client).startTestItem(same(testId), any());
-		verify(client).startTestItem(same(stepId), any());
 		ArgumentCaptor<FinishTestItemRQ> stepCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(nestedStepId), stepCaptor.capture());
+		verify(client).finishTestItem(same(stepId), stepCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(stepId), scenarioCaptor.capture());
+		verify(client).finishTestItem(same(testId), scenarioCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> featureCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(testId), featureCaptor.capture());
+		verify(client).finishTestItem(same(suiteId), featureCaptor.capture());
 
 		FinishTestItemRQ finishStepRequest = stepCaptor.getValue();
 		assertThat(finishStepRequest.getStatus(), equalTo(ItemStatus.FAILED.name()));
@@ -115,7 +109,7 @@ public class FailedTest {
 		List<SaveLogRQ> expectedErrorList = filterLogs(logCaptor, l -> l.getMessage() != null && l.getMessage().startsWith(EXPECTED_ERROR));
 		assertThat(expectedErrorList, hasSize(1));
 		SaveLogRQ expectedError = expectedErrorList.get(0);
-		assertThat(expectedError.getItemUuid(), equalTo(nestedStepId));
+		assertThat(expectedError.getItemUuid(), equalTo(stepId));
 	}
 
 	@Test
@@ -125,13 +119,12 @@ public class FailedTest {
 		verify(client).startTestItem(any());
 		verify(client).startTestItem(same(suiteId), any());
 		verify(client).startTestItem(same(testId), any());
-		verify(client).startTestItem(same(stepId), any());
 		ArgumentCaptor<FinishTestItemRQ> stepCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(nestedStepId), stepCaptor.capture());
+		verify(client).finishTestItem(same(stepId), stepCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(stepId), scenarioCaptor.capture());
+		verify(client).finishTestItem(same(testId), scenarioCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> featureCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(same(testId), featureCaptor.capture());
+		verify(client).finishTestItem(same(suiteId), featureCaptor.capture());
 
 		FinishTestItemRQ finishStepRequest = stepCaptor.getValue();
 		assertThat(finishStepRequest.getDescription(), nullValue());
