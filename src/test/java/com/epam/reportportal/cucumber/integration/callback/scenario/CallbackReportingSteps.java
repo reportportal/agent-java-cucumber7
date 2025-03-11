@@ -16,7 +16,7 @@
 
 package com.epam.reportportal.cucumber.integration.callback.scenario;
 
-import com.epam.reportportal.cucumber.AbstractReporter;
+import com.epam.reportportal.cucumber.ScenarioReporter;
 import com.epam.reportportal.cucumber.util.ItemTreeUtils;
 import com.epam.reportportal.service.tree.ItemTreeReporter;
 import com.epam.reportportal.service.tree.TestItemTree;
@@ -39,7 +39,7 @@ public class CallbackReportingSteps {
 
 	@After
 	public void after(Scenario scenario) {
-		ItemTreeUtils.retrieveLeaf(scenario.getUri(), scenario.getLine(), STEP_TEXT, AbstractReporter.getCurrent().getItemTree())
+		ItemTreeUtils.retrieveLeaf(scenario.getUri(), scenario.getLine(), STEP_TEXT, ScenarioReporter.getCurrent().getItemTree())
 				.ifPresent(itemLeaf -> {
 					if (scenario.getName().contains("failure")) {
 						itemLeaf.getItemId().blockingGet(); // trigger item creation to avoid async issues
@@ -57,20 +57,20 @@ public class CallbackReportingSteps {
 		finishTestItemRQ.setStatus(status);
 		finishTestItemRQ.setEndTime(Calendar.getInstance().getTime());
 		ItemTreeReporter.finishItem(
-				AbstractReporter.getCurrent().getReportPortal().getClient(),
+				ScenarioReporter.getCurrent().getReportPortal().getClient(),
 				finishTestItemRQ,
-				AbstractReporter.getCurrent().getItemTree().getLaunchId(),
+				ScenarioReporter.getCurrent().getItemTree().getLaunchId(),
 				testResultLeaf
 		).blockingGet();
 	}
 
 	private void attachLog(TestItemTree.TestItemLeaf testItemLeaf) {
 		ItemTreeReporter.sendLog(
-				AbstractReporter.getCurrent().getReportPortal().getClient(),
+				ScenarioReporter.getCurrent().getReportPortal().getClient(),
 				"ERROR",
 				"Error message",
 				Calendar.getInstance().getTime(),
-				AbstractReporter.getCurrent().getItemTree().getLaunchId(),
+				ScenarioReporter.getCurrent().getItemTree().getLaunchId(),
 				testItemLeaf
 		);
 	}

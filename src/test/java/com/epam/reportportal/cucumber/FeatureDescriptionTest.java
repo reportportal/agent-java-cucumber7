@@ -74,12 +74,7 @@ public class FeatureDescriptionTest {
 
 	private static final Pair<String, String> FEATURE_CODE_REFERENCES = Pair.of(
 			"file:///",
-			"/agent-java-cucumber6/src/test/resources/features/belly.feature"
-	);
-
-	private static final Pair<String, String> SCENARIO_CODE_REFERENCES = Pair.of(
-			"file:///",
-			"/agent-java-cucumber6/src/test/resources/features/belly.feature"
+			"/agent-java-cucumber7/src/test/resources/features/belly.feature"
 	);
 
 	@Test
@@ -99,9 +94,6 @@ public class FeatureDescriptionTest {
 				feature.getDescription(),
 				allOf(notNullValue(), startsWith(FEATURE_CODE_REFERENCES.getKey()), endsWith(FEATURE_CODE_REFERENCES.getValue()))
 		);
-		assertThat(
-				scenario.getDescription(),
-				allOf(notNullValue(), startsWith(SCENARIO_CODE_REFERENCES.getKey()), endsWith(SCENARIO_CODE_REFERENCES.getValue()))
-		);
+		assertThat(scenario.getDescription(), nullValue());
 	}
 }

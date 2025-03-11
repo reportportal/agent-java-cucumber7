@@ -99,14 +99,14 @@ public class BackgroundTest {
 		assertThat(
 				firstStepStarts.getAllValues()
 						.stream()
-						.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
+						.filter(r -> r.getName().startsWith(ScenarioReporter.BACKGROUND_PREFIX))
 						.collect(Collectors.toList()), hasSize(1)
 		);
 
 		assertThat(
 				secondStepStarts.getAllValues()
 						.stream()
-						.filter(r -> r.getName().startsWith(AbstractReporter.BACKGROUND_PREFIX))
+						.filter(r -> r.getName().startsWith(ScenarioReporter.BACKGROUND_PREFIX))
 						.collect(Collectors.toList()), hasSize(1)
 		);
 
