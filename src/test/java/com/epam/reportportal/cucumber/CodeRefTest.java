@@ -59,11 +59,18 @@ public class CodeRefTest {
 
 	}
 
+	@CucumberOptions(features = "src/test/resources/features/BasicScenarioOutlineParameters.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class ScenarioOutlineTest extends AbstractTestNGCucumberTests {
+
+	}
+
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("feature_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList());
 	private final List<Pair<String, List<String>>> tests = testIds.stream()
-			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(3).collect(Collectors.toList())))
+			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
 
 	private final ListenerParameters parameters = TestUtils.standardParameters();
@@ -107,21 +114,60 @@ public class CodeRefTest {
 		TestUtils.runTests(TwoFeaturesTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(suiteId), captor.capture());
-		verify(client, times(2)).startTestItem(same(testIds.get(0)), captor.capture());
-		verify(client, times(2)).startTestItem(same(testIds.get(1)), captor.capture());
+		ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(suiteId), scenarioCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor1 = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(testIds.get(0)), stepCaptor1.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor2 = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(testIds.get(1)), stepCaptor2.capture());
 
-		List<StartTestItemRQ> items = captor.getAllValues();
-		List<StartTestItemRQ> suites = items.subList(0, 2);
-		List<StartTestItemRQ> steps = items.subList(2, items.size());
+		List<StartTestItemRQ> scenarios = scenarioCaptor.getAllValues();
 
 		IntStream.range(0, TWO_SCENARIOS_FEATURE_CODE_REFERENCES.size())
 				.forEach(i -> assertThat(
-						suites.get(i).getCodeRef(),
+						scenarios.get(i).getCodeRef(),
 						allOf(notNullValue(), equalTo(TWO_SCENARIOS_FEATURE_CODE_REFERENCES.get(i)))
 				));
 
-		IntStream.range(0, steps.size()).forEach(i -> assertThat(steps.get(i).getCodeRef(), nullValue()));
+		List<StartTestItemRQ> steps1 = stepCaptor1.getAllValues();
+		IntStream.range(0, steps1.size()).forEach(i -> assertThat(steps1.get(i).getCodeRef(), nullValue()));
+		List<StartTestItemRQ> steps2 = stepCaptor2.getAllValues();
+		IntStream.range(0, steps2.size()).forEach(i -> assertThat(steps2.get(i).getCodeRef(), nullValue()));
+	}
+
+	private static final List<String> SCENARIO_OUTLINE_CODE_REFERENCES = Arrays.asList(
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:123;str:\"first\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:12345;str:\"second\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:12345678;str:\"third\"]]"
+	);
+
+	@Test
+	public void verify_code_reference_scenario_outline() {
+		TestUtils.runTests(ScenarioOutlineTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(suiteId), scenarioCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor1 = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(testIds.get(0)), stepCaptor1.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor2 = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(testIds.get(1)), stepCaptor2.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor3 = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(testIds.get(1)), stepCaptor3.capture());
+
+		List<StartTestItemRQ> scenarios = scenarioCaptor.getAllValues();
+
+		IntStream.range(0, SCENARIO_OUTLINE_CODE_REFERENCES.size())
+				.forEach(i -> assertThat(
+						scenarios.get(i).getCodeRef(),
+						allOf(notNullValue(), equalTo(SCENARIO_OUTLINE_CODE_REFERENCES.get(i)))
+				));
+
+		List<StartTestItemRQ> steps1 = stepCaptor1.getAllValues();
+		IntStream.range(0, steps1.size()).forEach(i -> assertThat(steps1.get(i).getCodeRef(), nullValue()));
+		List<StartTestItemRQ> steps2 = stepCaptor2.getAllValues();
+		IntStream.range(0, steps2.size()).forEach(i -> assertThat(steps2.get(i).getCodeRef(), nullValue()));
+		List<StartTestItemRQ> steps3 = stepCaptor3.getAllValues();
+		IntStream.range(0, steps3.size()).forEach(i -> assertThat(steps3.get(i).getCodeRef(), nullValue()));
 	}
 }
