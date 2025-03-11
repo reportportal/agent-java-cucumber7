@@ -60,20 +60,13 @@ public class CallbackReportingIntegrationTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(2).collect(Collectors.toList());
-	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(4).collect(Collectors.toList());
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(2).collect(Collectors.toList());
+	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(4).collect(Collectors.toList());
 
 	private final List<Pair<String, List<String>>> tests = Arrays.asList(Pair.of(testIds.get(0), stepIds.subList(0, 2)),
 			Pair.of(testIds.get(1), stepIds.subList(2, 4))
 	);
-
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("nested_step_"))
-			.limit(4)
-			.collect(Collectors.toList());
-	private final List<Pair<String, String>> nestedSteps = Stream.concat(nestedStepIds.stream()
-			.map(s -> Pair.of(stepIds.get(0), s))
-			.limit(2), nestedStepIds.stream().skip(2).map(s -> Pair.of(stepIds.get(1), s))).collect(Collectors.toList());
 
 	private final Supplier<ListenerParameters> params = () -> {
 		ListenerParameters p = TestUtils.standardParameters();
@@ -87,6 +80,7 @@ public class CallbackReportingIntegrationTest {
 	@BeforeEach
 	public void setup() {
 		TestUtils.mockLaunch(client, launchId, suiteId, tests);
+		TestUtils.mockLogging(client);
 		TestScenarioReporter.addReportPortal(reportPortal);
 		TestScenarioReporter.RP.set(reportPortal);
 		when(client.log(any(SaveLogRQ.class))).thenReturn(Maybe.just(new EntryCreatedAsyncRS()));
@@ -94,13 +88,11 @@ public class CallbackReportingIntegrationTest {
 
 	@Test
 	public void callback_reporting_test_scenario_reporter() {
-		TestUtils.mockNestedSteps(client, nestedSteps);
-
 		TestUtils.runTests(TestScenarioReporterRunner.class);
 
 		ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<FinishTestItemRQ> rqCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(10)).finishTestItem(idCaptor.capture(), rqCaptor.capture()); // Start test class and test method
+		verify(client, times(9)).finishTestItem(idCaptor.capture(), rqCaptor.capture()); // Start test class and test method
 
 		ArgumentCaptor<SaveLogRQ> saveLogRQArgumentCaptor = ArgumentCaptor.forClass(SaveLogRQ.class);
 		verify(client, times(1)).log(saveLogRQArgumentCaptor.capture());
@@ -113,11 +105,11 @@ public class CallbackReportingIntegrationTest {
 				.collect(Collectors.toList());
 
 		List<Pair<String, FinishTestItemRQ>> firstScenarioIds = idRqs.stream()
-				.filter(e -> nestedStepIds.subList(0, 2).contains(e.getKey()))
+				.filter(e -> stepIds.subList(0, 2).contains(e.getKey()))
 				.collect(Collectors.toList());
 
 		List<Pair<String, FinishTestItemRQ>> secondScenarioIds = idRqs.stream()
-				.filter(e -> nestedStepIds.subList(2, 4).contains(e.getKey()))
+				.filter(e -> stepIds.subList(2, 4).contains(e.getKey()))
 				.collect(Collectors.toList());
 
 		assertThat(firstScenarioIds, hasSize(3));
