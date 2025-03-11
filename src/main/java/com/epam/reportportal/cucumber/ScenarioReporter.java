@@ -16,7 +16,6 @@
 
 package com.epam.reportportal.cucumber;
 
-import com.epam.reportportal.annotations.attribute.Attributes;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
@@ -25,7 +24,10 @@ import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
-import com.epam.reportportal.utils.*;
+import com.epam.reportportal.utils.MemoizingSupplier;
+import com.epam.reportportal.utils.MimeTypeDetector;
+import com.epam.reportportal.utils.ParameterUtils;
+import com.epam.reportportal.utils.TestCaseIdUtils;
 import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.reportportal.utils.http.ContentType;
@@ -50,7 +52,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1042,32 +1043,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 			marg.append(DOCSTRING_DECORATOR).append(docString).append(DOCSTRING_DECORATOR);
 		}
 		return marg.toString();
-	}
-
-	@Nonnull
-	private static Pair<String, String> parseJavaCodeRef(@Nonnull String codeRef) {
-		int lastDelimiterIndex = codeRef.lastIndexOf('.');
-		String className = codeRef.substring(0, lastDelimiterIndex);
-		String methodName = codeRef.substring(lastDelimiterIndex + 1);
-		return Pair.of(className, methodName);
-	}
-
-	@Nonnull
-	private static Optional<Class<?>> getStepClass(String classCodeRef, String fullCodeRef) {
-		try {
-			return Optional.of(Class.forName(classCodeRef));
-		} catch (ClassNotFoundException e1) {
-			try {
-				return Optional.of(Class.forName(fullCodeRef));
-			} catch (ClassNotFoundException e2) {
-				return Optional.empty();
-			}
-		}
-	}
-
-	@Nonnull
-	private static Optional<Method> getStepMethod(@Nonnull Class<?> stepClass, @Nullable String methodName) {
-		return Arrays.stream(stepClass.getMethods()).filter(m -> m.getName().equals(methodName)).findAny();
 	}
 
 	/**
