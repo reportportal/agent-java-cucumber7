@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -57,24 +58,17 @@ public class ManualStepReporterTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
 
-	// Scenario reporter
-	private final List<String> scenarioNestedStepIds = Stream.generate(() -> CommonUtils.namedId("step_"))
-			.limit(2)
-			.collect(Collectors.toList());
-	private final List<Pair<String, String>> scenarioNestedSteps = scenarioNestedStepIds.stream()
-			.map(s -> Pair.of(stepIds.get(0), s))
-			.collect(Collectors.toList());
-	private final List<String> scenarioSecondNestedStepIds = Stream.generate(() -> CommonUtils.namedId("step_"))
-			.limit(3)
-			.collect(Collectors.toList());
-	private final List<Pair<String, String>> scenarioSecondNestedSteps = Stream.concat(
-			Stream.of(Pair.of(scenarioNestedStepIds.get(0), scenarioSecondNestedStepIds.get(0))),
-			scenarioSecondNestedStepIds.stream().skip(1).map(s -> Pair.of(scenarioNestedStepIds.get(1), s))
+	private final List<Pair<String, String>> nestedSteps = Stream.of(
+			Pair.of(stepIds.get(0), CommonUtils.namedId("nested_step_")),
+			Pair.of(stepIds.get(1), CommonUtils.namedId("nested_step_")),
+			Pair.of(stepIds.get(1), CommonUtils.namedId("nested_step_"))
 	).collect(Collectors.toList());
+
+	private final Set<String> nestedStepIds = nestedSteps.stream().map(Pair::getValue).collect(Collectors.toSet());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -103,13 +97,12 @@ public class ManualStepReporterTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void verify_scenario_reporter_steps_integrity() {
-		TestUtils.mockNestedSteps(client, scenarioNestedSteps);
-		TestUtils.mockNestedSteps(client, scenarioSecondNestedSteps);
+		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.runTests(SimpleTest.class);
 
-		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any());
+		verify(client, times(2)).startTestItem(same(testId), any());
 		ArgumentCaptor<StartTestItemRQ> firstStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(scenarioNestedStepIds.get(0)), firstStepCaptor.capture());
+		verify(client).startTestItem(same(stepIds.get(0)), firstStepCaptor.capture());
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, times(5)).log(logCaptor.capture());
 		StartTestItemRQ firstStep = firstStepCaptor.getValue();
@@ -117,35 +110,35 @@ public class ManualStepReporterTest {
 
 		SaveLogRQ firstStepLog = logs.get(0);
 		verifyStepStart(firstStep, ManualStepReporterSteps.FIRST_NAME);
-		verifyLogEntry(firstStepLog, scenarioSecondNestedStepIds.get(0), ManualStepReporterSteps.FIRST_NESTED_STEP_LOG);
+		verifyLogEntry(firstStepLog, nestedSteps.get(0).getValue(), ManualStepReporterSteps.FIRST_NESTED_STEP_LOG);
 
 		ArgumentCaptor<StartTestItemRQ> secondStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(scenarioNestedStepIds.get(1)), secondStepCaptor.capture());
+		verify(client, times(2)).startTestItem(same(stepIds.get(1)), secondStepCaptor.capture());
 		List<StartTestItemRQ> secondSteps = secondStepCaptor.getAllValues();
 		List<SaveLogRQ> secondStepLogs = logs.subList(1, logs.size());
 
 		StartTestItemRQ secondStep = secondSteps.get(0);
 		verifyStepStart(secondStep, ManualStepReporterSteps.SECOND_NAME);
-		verifyLogEntry(secondStepLogs.get(0), scenarioSecondNestedStepIds.get(1), ManualStepReporterSteps.DURING_SECOND_NESTED_STEP_LOG);
-		verifyLogEntry(secondStepLogs.get(1), scenarioSecondNestedStepIds.get(1), ManualStepReporterSteps.SECOND_NESTED_STEP_LOG);
+		verifyLogEntry(secondStepLogs.get(0), nestedSteps.get(1).getValue(), ManualStepReporterSteps.DURING_SECOND_NESTED_STEP_LOG);
+		verifyLogEntry(secondStepLogs.get(1), nestedSteps.get(1).getValue(), ManualStepReporterSteps.SECOND_NESTED_STEP_LOG);
 
 		StartTestItemRQ thirdStep = secondSteps.get(1);
 		verifyStepStart(thirdStep, ManualStepReporterSteps.THIRD_NAME);
 
 		SaveLogRQ pugLog = secondStepLogs.get(2);
-		assertThat(pugLog.getItemUuid(), equalTo(scenarioSecondNestedStepIds.get(2)));
+		assertThat(pugLog.getItemUuid(), equalTo(nestedSteps.get(2).getValue()));
 		assertThat(pugLog.getMessage(), emptyString());
 		assertThat(pugLog.getFile(), notNullValue());
 
-		verifyLogEntry(secondStepLogs.get(3), scenarioSecondNestedStepIds.get(2), ManualStepReporterSteps.THIRD_NESTED_STEP_LOG);
+		verifyLogEntry(secondStepLogs.get(3), nestedSteps.get(2).getValue(), ManualStepReporterSteps.THIRD_NESTED_STEP_LOG);
 
 		ArgumentCaptor<String> finishIdCaptor = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<FinishTestItemRQ> finishRqCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client, times(8)).finishTestItem(finishIdCaptor.capture(), finishRqCaptor.capture());
+		verify(client, times(7)).finishTestItem(finishIdCaptor.capture(), finishRqCaptor.capture());
 		List<String> finishIds = finishIdCaptor.getAllValues();
 		List<FinishTestItemRQ> finishRqs = finishRqCaptor.getAllValues();
 		List<FinishTestItemRQ> nestedStepFinishes = IntStream.range(0, finishIds.size())
-				.filter(i -> scenarioSecondNestedStepIds.contains(finishIds.get(i)))
+				.filter(i -> nestedStepIds.contains(finishIds.get(i)))
 				.mapToObj(finishRqs::get)
 				.collect(Collectors.toList());
 
@@ -154,7 +147,7 @@ public class ManualStepReporterTest {
 		assertThat(nestedStepFinishes.get(2).getStatus(), equalTo("FAILED"));
 
 		List<FinishTestItemRQ> stepFinishes = IntStream.range(0, finishIds.size())
-				.filter(i -> !scenarioSecondNestedStepIds.contains(finishIds.get(i)))
+				.filter(i -> !nestedStepIds.contains(finishIds.get(i)))
 				.mapToObj(finishRqs::get)
 				.collect(Collectors.toList());
 
@@ -162,6 +155,5 @@ public class ManualStepReporterTest {
 		assertThat(stepFinishes.get(1).getStatus(), equalTo("FAILED"));
 		assertThat(stepFinishes.get(2).getStatus(), equalTo("FAILED"));
 		assertThat(stepFinishes.get(3).getStatus(), equalTo("FAILED"));
-		assertThat(stepFinishes.get(4).getStatus(), equalTo("FAILED"));
 	}
 }
