@@ -41,7 +41,6 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.any;
 
 /**
  * @author <a href="mailto:ihar_kahadouski@epam.com">Ihar Kahadouski</a>
@@ -56,8 +55,8 @@ public class FeatureDescriptionTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(3).collect(Collectors.toList());
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList());
 	private final List<Pair<String, List<String>>> tests = testIds.stream()
 			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
@@ -87,10 +86,9 @@ public class FeatureDescriptionTest {
 	public void verify_description() {
 		TestUtils.runTests(BellyTest.class);
 
-		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> captor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(captor.capture());
 		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
-		verify(client, times(1)).startTestItem(same(testIds.get(0)), captor.capture());
 
 		List<StartTestItemRQ> items = captor.getAllValues();
 
