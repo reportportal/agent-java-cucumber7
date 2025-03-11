@@ -51,8 +51,8 @@ public class ItemTimeOrderTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("s_");
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
 
 	private final ListenerParameters parameters = TestUtils.standardParameters();
@@ -72,16 +72,25 @@ public class ItemTimeOrderTest {
 
 		ArgumentCaptor<StartLaunchRQ> launchCaptor = ArgumentCaptor.forClass(StartLaunchRQ.class);
 		verify(client).startLaunch(launchCaptor.capture());
-		ArgumentCaptor<StartTestItemRQ> itemCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client).startTestItem(itemCaptor.capture());
-		verify(client).startTestItem(same(suiteId), itemCaptor.capture());
-		verify(client).startTestItem(same(testId), itemCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> featureCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client).startTestItem(featureCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client).startTestItem(same(suiteId), scenarioCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());
 
 		Date startTime = launchCaptor.getValue().getStartTime();
-		List<StartTestItemRQ> items = itemCaptor.getAllValues();
-		for (StartTestItemRQ item : items) {
-			assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
-			startTime = item.getStartTime();
+		StartTestItemRQ item = featureCaptor.getValue();
+		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
+		startTime = item.getStartTime();
+
+		item = scenarioCaptor.getValue();
+		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
+		startTime = item.getStartTime();
+
+		List<StartTestItemRQ> items = stepCaptor.getAllValues();
+		for (StartTestItemRQ i : items) {
+			assertThat(i.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
 		}
 	}
 }
