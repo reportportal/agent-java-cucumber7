@@ -101,7 +101,8 @@ public class CodeRefTest {
 		assertThat(scenario.getCodeRef(), allOf(notNullValue(), equalTo(SCENARIO_CODE_REFERENCES)));
 	}
 
-	private static final List<String> TWO_FEATURES_CODE_REFERENCES = Arrays.asList("src/test/resources/features/TwoScenarioInOne.feature:3",
+	private static final List<String> TWO_FEATURES_CODE_REFERENCES = Arrays.asList(
+			"src/test/resources/features/TwoScenarioInOne.feature:3",
 			"src/test/resources/features/TwoScenarioInOne.feature:7"
 	);
 

@@ -110,10 +110,6 @@ public class TestUtils {
 		when(client.log(any(List.class))).thenReturn(Maybe.just(new BatchSaveOperatingRS()));
 	}
 
-	public static void mockNestedSteps(ReportPortalClient client, Pair<String, String> parentNestedPair) {
-		mockNestedSteps(client, Collections.singletonList(parentNestedPair));
-	}
-
 	@SuppressWarnings("unchecked")
 	public static void mockNestedSteps(final ReportPortalClient client, final List<Pair<String, String>> parentNestedPairs) {
 		Map<String, List<String>> responseOrders = parentNestedPairs.stream()
@@ -160,8 +156,10 @@ public class TestUtils {
 				})
 				.map(b -> {
 					try {
-						return HttpRequestUtils.MAPPER.readValue(b, new TypeReference<>() {
-						});
+						return HttpRequestUtils.MAPPER.readValue(
+								b, new TypeReference<>() {
+								}
+						);
 					} catch (IOException e) {
 						return Collections.<SaveLogRQ>emptyList();
 					}
@@ -171,10 +169,6 @@ public class TestUtils {
 	}
 
 	public static List<SaveLogRQ> filterLogs(ArgumentCaptor<List<MultipartBody.Part>> logCaptor, Predicate<SaveLogRQ> filter) {
-		return logCaptor.getAllValues()
-				.stream()
-				.flatMap(l -> extractJsonParts(l).stream())
-				.filter(filter)
-				.collect(Collectors.toList());
+		return logCaptor.getAllValues().stream().flatMap(l -> extractJsonParts(l).stream()).filter(filter).collect(Collectors.toList());
 	}
 }

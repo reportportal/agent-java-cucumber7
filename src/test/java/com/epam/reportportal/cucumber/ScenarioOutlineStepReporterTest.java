@@ -114,10 +114,12 @@ public class ScenarioOutlineStepReporterTest {
 
 		List<String> items = testCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
 
-		assertThat(items, hasItems(
-				"Scenario Outline: Test with the parameter \"first\"",
-				"Scenario Outline: Test with the parameter \"second\"",
-				"Scenario Outline: Test with the parameter \"third\""
-		));
+		assertThat(
+				items, hasItems(
+						"Scenario Outline: Test with the parameter \"first\"",
+						"Scenario Outline: Test with the parameter \"second\"",
+						"Scenario Outline: Test with the parameter \"third\""
+				)
+		);
 	}
 }
