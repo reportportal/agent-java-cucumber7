@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,18 +54,13 @@ public class RuleKeywordTest {
 	private final String featureId = CommonUtils.namedId("feature_");
 	private final List<String> ruleIds = Arrays.asList(CommonUtils.namedId("rule_"), CommonUtils.namedId("rule_"));
 	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList());
-	private final List<Pair<String, List<String>>> tests = Stream.concat(Stream.of(Pair.of(ruleIds.get(0), testIds.subList(0, 2))),
-			Stream.of(Pair.of(ruleIds.get(1), testIds.subList(2, 3)))
-	)
-			.collect(Collectors.toList());
-	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(6).collect(Collectors.toList());
-	private final List<Pair<String, String>> steps = IntStream.range(0, testIds.size())
-			.boxed()
-			.flatMap(i -> Stream.of(Pair.of(testIds.get(i), stepIds.get(i * 2)), Pair.of(testIds.get(i), stepIds.get((i * 2) + 1))))
+	private final List<Pair<String, List<String>>> tests = Stream.concat(
+					Stream.of(Pair.of(ruleIds.get(0), testIds.subList(0, 2))),
+					Stream.of(Pair.of(ruleIds.get(1), testIds.subList(2, 3)))
+			)
 			.collect(Collectors.toList());
 
 	// Scenario reporter
-	private final String suiteId = CommonUtils.namedId("suite_");
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -74,18 +68,16 @@ public class RuleKeywordTest {
 
 	@Test
 	public void verify_rule_keyword_scenario_reporter() {
-		TestUtils.mockLaunch(client, launchId, suiteId, featureId, ruleIds);
-		TestUtils.mockNestedSteps(client,
+		TestUtils.mockLaunch(client, launchId, featureId, tests);
+		TestUtils.mockNestedSteps(
+				client,
 				tests.stream().flatMap(e -> e.getValue().stream().map(v -> Pair.of(e.getKey(), v))).collect(Collectors.toList())
 		);
-		TestUtils.mockNestedSteps(client, steps);
-
 		TestScenarioReporter.RP.set(reportPortal);
 
 		TestUtils.runTests(SimpleTest.class);
 
 		verify(client, times(1)).startTestItem(any());
-		verify(client, times(1)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> ruleRqCapture = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(featureId), ruleRqCapture.capture());
 
