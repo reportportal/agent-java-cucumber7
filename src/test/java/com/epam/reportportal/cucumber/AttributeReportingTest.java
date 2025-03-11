@@ -38,7 +38,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -51,13 +52,9 @@ public class AttributeReportingTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
-	private final List<Pair<String, String>> nestedSteps = nestedStepIds.stream()
-			.map(s -> Pair.of(stepIds.get(0), s))
-			.collect(Collectors.toList());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -96,23 +93,18 @@ public class AttributeReportingTest {
 
 	@Test
 	public void verify_scenario_reporter_attributes() {
-		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.runTests(SimpleTest.class);
 
-		ArgumentCaptor<StartTestItemRQ> mainSuiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client).startTestItem(mainSuiteCaptor.capture());
-		assertThat(mainSuiteCaptor.getValue().getAttributes(), anyOf(emptyIterable(), nullValue()));
-
-		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client).startTestItem(same(suiteId), suiteCaptor.capture());
-		verifyAttributes(suiteCaptor.getValue().getAttributes(), FEATURE_ATTRIBUTES);
+		ArgumentCaptor<StartTestItemRQ> featureCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client).startTestItem(featureCaptor.capture());
+		verifyAttributes(featureCaptor.getValue().getAttributes(), FEATURE_ATTRIBUTES);
 
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client).startTestItem(same(testId), testCaptor.capture());
+		verify(client).startTestItem(same(suiteId), testCaptor.capture());
 		verifyAttributes(testCaptor.getValue().getAttributes(), Collections.singleton(Pair.of(null, "@ok")));
 
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(3)).startTestItem(same(stepIds.get(0)), stepCaptor.capture());
+		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());
 
 		verifyAnnotationAttributes(stepCaptor.getAllValues());
 	}
