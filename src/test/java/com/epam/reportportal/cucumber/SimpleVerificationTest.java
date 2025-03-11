@@ -25,7 +25,6 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -50,13 +49,9 @@ public class SimpleVerificationTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
 	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
-	private final List<String> nestedStepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
-	private final List<Pair<String, String>> nestedSteps = nestedStepIds.stream()
-			.map(s -> Pair.of(stepIds.get(0), s))
-			.collect(Collectors.toList());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -78,24 +73,18 @@ public class SimpleVerificationTest {
 
 	@Test
 	public void verify_scenario_reporter_steps_integrity() {
-		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.runTests(SimpleTest.class);
 
 		ArgumentCaptor<StartTestItemRQ> mainSuiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(mainSuiteCaptor.capture());
-		verifyRequest(mainSuiteCaptor.getValue(), "SUITE", true);
+		verifyRequest(mainSuiteCaptor.getValue(), "STORY", true);
 
 		ArgumentCaptor<StartTestItemRQ> suiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(suiteId), suiteCaptor.capture());
-		verifyRequest(suiteCaptor.getValue(), "STORY", true);
+		verifyRequest(suiteCaptor.getValue(), "STEP", true);
 
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(1)).startTestItem(same(testId), testCaptor.capture());
-		verifyRequest(testCaptor.getValue(), "STEP", true);
-
-		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(3)).startTestItem(same(stepIds.get(0)), stepCaptor.capture());
-
-		stepCaptor.getAllValues().forEach(rq -> verifyRequest(rq, "STEP", false));
+		verify(client, times(3)).startTestItem(same(testId), testCaptor.capture());
+		verifyRequest(testCaptor.getValue(), "STEP", false);
 	}
 }
