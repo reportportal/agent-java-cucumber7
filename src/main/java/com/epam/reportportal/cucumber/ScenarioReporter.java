@@ -241,42 +241,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
-	/**
-	 * Returns code reference for feature files by URI and text line number
-	 *
-	 * @param testCase Cucumber's TestCase object
-	 * @param parameters a scenario parameters
-	 * @return a code reference
-	 */
-	@Nonnull
-	protected String getCodeRef(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
-		URI uri = testCase.getUri();
-		String relativePath = WORKING_DIRECTORY.relativize(uri).toString();
-		String baseCodeRef = relativePath + "/[SCENARIO:" + testCase.getName() + "]";
-		if (parameters == null) {
-			return baseCodeRef;
-		}
-
-		String paramString = parameters.stream()
-				.sorted()
-				.map(entry -> entry.getKey() + ":" + entry.getValue())
-				.collect(Collectors.joining(";"));
-
-		return relativePath + "/[EXAMPLE:" + testCase.getName() + "[" + paramString + "]]";
-	}
-
-	/**
-	 * Return a Test Case ID for a scenario in a feature file
-	 *
-	 * @param testCase   Cucumber's TestCase object
-	 * @param parameters a scenario parameters
-	 * @return Test Case ID
-	 */
-	@Nonnull
-	protected String getTestCaseId(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
-		return getCodeRef(testCase, parameters);
-	}
-
 	private boolean isLineInExamplesTable(String line) {
 		return line.startsWith("|") && line.endsWith("|");
 	}
@@ -368,6 +332,42 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return IntStream.range(0, paramNames.size())
 				.mapToObj(i -> Pair.of(paramNames.get(i), paramValues.get(i)))
 				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Returns code reference for feature files by URI and text line number
+	 *
+	 * @param testCase   Cucumber's TestCase object
+	 * @param parameters a scenario parameters
+	 * @return a code reference
+	 */
+	@Nonnull
+	protected String getCodeRef(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
+		URI uri = testCase.getUri();
+		String relativePath = WORKING_DIRECTORY.relativize(uri).toString();
+		String baseCodeRef = relativePath + "/[SCENARIO:" + testCase.getName() + "]";
+		if (parameters == null) {
+			return baseCodeRef;
+		}
+
+		String paramString = parameters.stream()
+				.sorted()
+				.map(entry -> entry.getKey() + ":" + entry.getValue())
+				.collect(Collectors.joining(";"));
+
+		return relativePath + "/[EXAMPLE:" + testCase.getName() + "[" + paramString + "]]";
+	}
+
+	/**
+	 * Return a Test Case ID for a scenario in a feature file
+	 *
+	 * @param testCase   Cucumber's TestCase object
+	 * @param parameters a scenario parameters
+	 * @return Test Case ID
+	 */
+	@Nonnull
+	protected String getTestCaseId(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
+		return getCodeRef(testCase, parameters);
 	}
 
 	/**
