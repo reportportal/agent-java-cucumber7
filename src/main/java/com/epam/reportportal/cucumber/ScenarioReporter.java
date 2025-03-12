@@ -245,6 +245,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * Returns code reference for feature files by URI and text line number
 	 *
 	 * @param testCase Cucumber's TestCase object
+	 * @param parameters a scenario parameters
 	 * @return a code reference
 	 */
 	@Nonnull
@@ -320,6 +321,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return Arrays.stream(tableRow.split("\\|")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
 	}
 
+	/**
+	 * Extract parameters from Examples table for the current Scenario Outline
+	 *
+	 * @param testCase Cucumber's TestCase object
+	 * @return a list of parameter pairs or null if failed to extract
+	 */
 	@Nullable
 	protected List<Pair<String, String>> getParameters(@Nonnull TestCase testCase) {
 		URI uri = testCase.getUri();
