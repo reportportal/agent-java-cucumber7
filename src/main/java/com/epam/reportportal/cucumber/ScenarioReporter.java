@@ -22,12 +22,10 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.message.ReportPortalMessage;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
-import com.epam.reportportal.service.item.TestCaseIdEntry;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.MemoizingSupplier;
 import com.epam.reportportal.utils.MimeTypeDetector;
 import com.epam.reportportal.utils.ParameterUtils;
-import com.epam.reportportal.utils.TestCaseIdUtils;
 import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.reportportal.utils.http.ContentType;
@@ -53,10 +51,13 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.epam.reportportal.cucumber.Utils.*;
 import static com.epam.reportportal.cucumber.util.ItemTreeUtils.createKey;
@@ -241,28 +242,125 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Return a Test Case ID for a feature file
-	 *
-	 * @param codeRef   a code reference
-	 * @param arguments a scenario arguments
-	 * @return Test Case ID entity or null if it's not possible to calculate
-	 */
-	@Nullable
-	@SuppressWarnings("unchecked")
-	protected TestCaseIdEntry getTestCaseId(@Nullable String codeRef, @Nullable List<Argument> arguments) {
-		return TestCaseIdUtils.getTestCaseId(codeRef, (List<Object>) ARGUMENTS_TRANSFORM.apply(arguments));
-	}
-
-	/**
 	 * Returns code reference for feature files by URI and text line number
 	 *
 	 * @param testCase Cucumber's TestCase object
 	 * @return a code reference
 	 */
 	@Nonnull
-	protected String getCodeRef(@Nonnull TestCase testCase) {
-		return WORKING_DIRECTORY.relativize(testCase.getUri()) + "/[" + testCase.getKeyword().toUpperCase(Locale.ROOT) + ":"
-				+ testCase.getName() + "]";
+	protected String getCodeRef(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
+		URI uri = testCase.getUri();
+		String relativePath = WORKING_DIRECTORY.relativize(uri).toString();
+		String baseCodeRef = relativePath + "/[SCENARIO:" + testCase.getName() + "]";
+		if (parameters == null) {
+			return baseCodeRef;
+		}
+
+		String paramString = parameters.stream()
+				.sorted()
+				.map(entry -> entry.getKey() + ":" + entry.getValue())
+				.collect(Collectors.joining(";"));
+
+		return relativePath + "/[EXAMPLE:" + testCase.getName() + "[" + paramString + "]]";
+	}
+
+	/**
+	 * Return a Test Case ID for a scenario in a feature file
+	 *
+	 * @param testCase   Cucumber's TestCase object
+	 * @param parameters a scenario parameters
+	 * @return Test Case ID
+	 */
+	@Nonnull
+	protected String getTestCaseId(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
+		return getCodeRef(testCase, parameters);
+	}
+
+	private boolean isLineInExamplesTable(String line) {
+		return line.startsWith("|") && line.endsWith("|");
+	}
+
+	/**
+	 * Check if the given line is within an Examples table
+	 */
+	private boolean isLineInExamplesTable(List<String> fileLines, int lineNumber) {
+		// Line numbers in Cucumber are 1-based, list indices are 0-based
+		if (lineNumber <= 0 || lineNumber > fileLines.size()) {
+			return false;
+		}
+
+		String line = fileLines.get(lineNumber - 1).trim();
+		// Check if the line is a table row (starts and ends with pipe)
+		return isLineInExamplesTable(line);
+	}
+
+	/**
+	 * Find the header row of the Examples table containing the given line
+	 */
+	private int findHeaderRowIndex(List<String> fileLines, int lineNumber) {
+		int previousLine = lineNumber - 2;
+		// Search upward from the current line to find the header row
+		for (int i = previousLine; i >= 0; i--) {
+			String line = fileLines.get(i).trim();
+			if (StringUtils.isNotBlank(line) && !isLineInExamplesTable(line)) {
+				return previousLine;
+			}
+
+			if (StringUtils.isNotBlank(line)) {
+				previousLine = i;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * Extract cells from a table row
+	 */
+	private List<String> extractTableCells(String tableRow) {
+		return Arrays.stream(tableRow.split("\\|")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+	}
+
+	@Nullable
+	protected List<Pair<String, String>> getParameters(@Nonnull TestCase testCase) {
+		URI uri = testCase.getUri();
+		int lineNumber = testCase.getLocation().getLine();
+
+		// Read the feature file to extract the parameters for the current example
+		List<String> fileLines;
+		try {
+			fileLines = Files.readAllLines(Paths.get(uri));
+		} catch (IOException e) {
+			LOGGER.error("Failed to read feature file: {}", uri, e);
+			return null;
+		}
+
+		// Check if this is a scenario from a scenario outline by checking the location line
+		if (!isLineInExamplesTable(fileLines, lineNumber)) {
+			return null;
+		}
+
+		// Get header row (parameter names)
+		int headerRowIndex = findHeaderRowIndex(fileLines, lineNumber);
+		if (headerRowIndex < 0) {
+			return null;
+		}
+
+		String headerRow = fileLines.get(headerRowIndex).trim();
+		List<String> paramNames = extractTableCells(headerRow);
+
+		// Get value row (current example)
+		String valueRow = fileLines.get(lineNumber - 1).trim();
+		List<String> paramValues = extractTableCells(valueRow);
+
+		// Check if we got everything correctly
+		if (paramValues.isEmpty() || paramNames.size() != paramValues.size()) {
+			return null;
+		}
+
+		// Form parameter list and return
+		return IntStream.range(0, paramNames.size())
+				.mapToObj(i -> Pair.of(paramNames.get(i), paramValues.get(i)))
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -275,7 +373,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected StartTestItemRQ buildStartScenarioRequest(@Nonnull TestCase testCase) {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(buildName(testCase.getKeyword(), ScenarioReporter.COLON_INFIX, testCase.getName()));
-		String codeRef = getCodeRef(testCase);
+		List<Pair<String, String>> parameters = getParameters(testCase);
+		rq.setParameters(ParameterUtils.getParameters((String) null, parameters));
+		String codeRef = getCodeRef(testCase, parameters);
 		rq.setCodeRef(codeRef);
 		Set<String> tags = new HashSet<>(testCase.getTags());
 		execute(testCase.getUri(), f -> tags.removeAll(f.getTags()));
@@ -283,7 +383,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		rq.setStartTime(Calendar.getInstance().getTime());
 		String type = ItemType.STEP.name();
 		rq.setType(type);
-		rq.setTestCaseId(ofNullable(getTestCaseId(codeRef, null)).map(TestCaseIdEntry::getId).orElse(null));
+		rq.setTestCaseId(getTestCaseId(testCase, parameters));
 		return rq;
 	}
 

@@ -136,9 +136,9 @@ public class CodeRefTest {
 	}
 
 	private static final List<String> SCENARIO_OUTLINE_CODE_REFERENCES = Arrays.asList(
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:123;str:\"first\"]]",
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:12345;str:\"second\"]]",
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[SCENARIO OUTLINE:Test with different parameters[parameters:12345678;str:\"third\"]]"
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:123;str:\"first\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345;str:\"second\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345678;str:\"third\"]]"
 	);
 
 	@Test

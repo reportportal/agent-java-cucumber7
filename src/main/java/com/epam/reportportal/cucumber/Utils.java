@@ -18,15 +18,11 @@ package com.epam.reportportal.cucumber;
 
 import com.epam.reportportal.listeners.ItemStatus;
 import io.cucumber.core.gherkin.Feature;
-import io.cucumber.plugin.event.Argument;
 import io.cucumber.plugin.event.Status;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static java.util.Optional.ofNullable;
 
 /**
  * Utility class for static methods
@@ -74,9 +70,6 @@ public class Utils {
 	public static String buildName(@Nullable String prefix, @Nullable String infix, @Nullable String argument) {
 		return (prefix == null ? EMPTY : prefix) + infix + argument;
 	}
-
-	public static final java.util.function.Function<List<Argument>, List<?>> ARGUMENTS_TRANSFORM = arguments -> ofNullable(arguments).map(
-			args -> args.stream().map(Argument::getValue).collect(Collectors.toList())).orElse(null);
 
 	/**
 	 * Parses a feature source and return all declared tags before the feature.
