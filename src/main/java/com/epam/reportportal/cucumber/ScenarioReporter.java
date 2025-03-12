@@ -79,6 +79,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final String AGENT_PROPERTIES_FILE = "agent.properties";
 	private static final String COLON_INFIX = ": ";
 	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
+	private static final String DOC_STRING_PARAM = "DocString";
+	private static final String DATA_TABLE_PARAM = "DataTable";
+	private static final String UNKNOWN_PARAM = "arg";
 	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
 
 	protected static final URI WORKING_DIRECTORY = new File(System.getProperty("user.dir")).toURI();
@@ -485,12 +488,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 			String value;
 			if (a instanceof DocStringArgument) {
 				value = ((DocStringArgument) a).getContent();
+				params.add(Pair.of(DOC_STRING_PARAM, value));
 			} else if (a instanceof DataTableArgument) {
-				value = formatDataTable(((DataTableArgument) a).cells());
+				params.add(Pair.of(DATA_TABLE_PARAM, formatDataTable(((DataTableArgument) a).cells())));
 			} else {
-				value = a.toString();
+				params.add(Pair.of(UNKNOWN_PARAM, a.toString()));
 			}
-			params.add(Pair.of("arg", value));
 		});
 		return ParameterUtils.getParameters((String) null, params);
 	}
@@ -953,6 +956,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		publisher.registerHandlerFor(TestCaseFinished.class, getTestCaseFinishedHandler());
 		publisher.registerHandlerFor(TestRunFinished.class, getTestRunFinishedHandler());
 		publisher.registerHandlerFor(EmbedEvent.class, getEmbedEventHandler());
+		publisher.registerHandlerFor(WriteEvent.class, getWriteEventHandler());
 		publisher.registerHandlerFor(WriteEvent.class, getWriteEventHandler());
 	}
 

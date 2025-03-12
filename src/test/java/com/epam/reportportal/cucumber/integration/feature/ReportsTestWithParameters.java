@@ -18,6 +18,7 @@ package com.epam.reportportal.cucumber.integration.feature;
 
 import com.epam.reportportal.annotations.ParameterKey;
 import io.cucumber.datatable.DataTable;
+import io.cucumber.docstring.DocString;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -65,7 +66,12 @@ public class ReportsTestWithParameters {
 	}
 
 	@Given("a step with a data table:")
-	public void testStep(DataTable dataTable) {
+	public void testStepWithDataTable(DataTable dataTable) {
 		LOGGER.info("DataTable parameter:\r\n{}", dataTable.toString());
+	}
+
+	@Given("a step with a doc string:")
+	public void testStepWithDocString(DocString docString) {
+		LOGGER.info("DocString parameter:\r\n{}", docString.toString());
 	}
 }

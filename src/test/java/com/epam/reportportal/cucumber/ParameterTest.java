@@ -132,7 +132,7 @@ public class ParameterTest {
 		List<ParameterResource> params = items.get(1).getParameters();
 		assertThat(params, allOf(notNullValue(), hasSize(1)));
 		ParameterResource param1 = params.get(0);
-		assertThat(param1.getKey(), equalTo("java.lang.String"));
+		assertThat(param1.getKey(), equalTo("DocString"));
 		assertThat(param1.getValue(), equalTo(DOCSTRING_PARAM));
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
@@ -157,7 +157,7 @@ public class ParameterTest {
 		List<ParameterResource> params = items.get(0).getParameters();
 		assertThat(params, allOf(notNullValue(), hasSize(1)));
 		ParameterResource param1 = params.get(0);
-		assertThat(param1.getKey(), equalTo("io.cucumber.datatable.DataTable"));
+		assertThat(param1.getKey(), equalTo("DataTable"));
 		assertThat(param1.getValue(), equalTo(TABLE_PARAM));
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
