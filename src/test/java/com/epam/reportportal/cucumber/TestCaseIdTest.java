@@ -73,6 +73,7 @@ public class TestCaseIdTest {
 	@BeforeEach
 	public void setup() {
 		TestUtils.mockLaunch(client, launchId, suiteId, stepIds);
+		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
@@ -82,7 +83,7 @@ public class TestCaseIdTest {
 	}
 
 	@Test
-	public void shouldSendCaseIdWhenParametrizedScenarioReporter() {
+	public void verify_test_case_id_simple_scenario() {
 		TestUtils.runTests(RunBellyTest.class);
 
 		verify(client, times(1)).startTestItem(any());
@@ -90,12 +91,14 @@ public class TestCaseIdTest {
 		verify(client, times(1)).startTestItem(same(suiteId), captor.capture());
 
 		StartTestItemRQ rq = captor.getValue();
-		assertThat(rq.getTestCaseId(), equalTo("src/test/resources/features/belly.feature:5"));
+		assertThat(rq.getTestCaseId(), equalTo("src/test/resources/features/belly.feature/[SCENARIO:a few cukes]"));
 	}
 
-	private static final String[] TEST_CASE_IDS = new String[] { "src/test/resources/features/BasicScenarioOutlineParameters.feature:10",
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature:11",
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature:12" };
+	private static final String[] TEST_CASE_IDS = new String[] {
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:123;str:\"first\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345;str:\"second\"]]",
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345678;str:\"third\"]]"
+	};
 
 	@Test
 	public void verify_test_case_id_scenario_outline() {
