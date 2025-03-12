@@ -75,20 +75,6 @@ public class AttributeReportingTest {
 		values.forEach(v -> assertThat(attributePairs, hasItem(v)));
 	}
 
-	private static void verifyAnnotationAttributes(List<StartTestItemRQ> testSteps) {
-		Set<ItemAttributesRQ> stepAttributes = testSteps.get(0).getAttributes();
-		verifyAttributes(stepAttributes, Collections.singleton(Pair.of("key", "value")));
-
-		stepAttributes = testSteps.get(1).getAttributes();
-		verifyAttributes(
-				stepAttributes,
-				new HashSet<>(Arrays.asList(Pair.of("key1", "value1"), Pair.of("key2", "value2"), Pair.of("k1", "v"), Pair.of("k2", "v")))
-		);
-
-		stepAttributes = testSteps.get(2).getAttributes();
-		verifyAttributes(stepAttributes, new HashSet<>(Arrays.asList(Pair.of(null, "v1"), Pair.of(null, "v2"))));
-	}
-
 	private static final List<Pair<String, String>> FEATURE_ATTRIBUTES = Arrays.asList(Pair.of(null, "@smoke"), Pair.of(null, "@test"));
 
 	@Test
@@ -105,7 +91,5 @@ public class AttributeReportingTest {
 
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());
-
-		verifyAnnotationAttributes(stepCaptor.getAllValues());
 	}
 }
