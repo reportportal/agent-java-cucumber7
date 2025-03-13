@@ -25,6 +25,8 @@ import io.cucumber.plugin.event.Status;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Utility class for static methods
@@ -106,8 +108,34 @@ public class Utils {
 	 */
 	@Nonnull
 	public static Set<String> getTags(@Nonnull Node.Rule rule) {
-		// TODO: implement rule tags extraction
-		return Collections.emptySet();
+		return rule.getParent().map(p -> {
+			if (!(p instanceof Feature)) {
+				return Collections.<String>emptySet();
+			}
+			Feature feature = (Feature) p;
+			List<Node> featureChildren = feature.elements()
+					.stream()
+					.sorted(Comparator.comparing(n -> n.getLocation().getLine()))
+					.collect(Collectors.toList());
+			int ruleIndex = IntStream.range(0, featureChildren.size())
+					.filter(i -> featureChildren.get(i).equals(rule))
+					.findFirst()
+					.orElse(-1);
+			if (ruleIndex < 0) {
+				return Collections.<String>emptySet();
+			}
+			int lastLine = ruleIndex > 0 ? featureChildren.get(ruleIndex - 1).getLocation().getLine() : feature.getLocation().getLine();
+			List<String> lines = Arrays.asList(feature.getSource().split("\\r?\\n"));
+			Set<String> tags = new HashSet<>();
+			for (int i = rule.getLocation().getLine() - 1; i > lastLine; i--) {
+				String line = lines.get(i).trim();
+				if (!line.startsWith(TAG_KEY)) {
+					continue;
+				}
+				tags.addAll(Arrays.asList(line.split("\\s+")));
+			}
+			return tags;
+		}).orElse(Collections.emptySet());
 	}
 
 	/**
@@ -117,8 +145,8 @@ public class Utils {
 	 * @return attribute object
 	 */
 	public static ItemAttributesRQ toAttribute(String tag) {
-		String tagStr =tag.trim();
-		tagStr = tagStr.startsWith(TAG_KEY)? tagStr.substring(TAG_KEY.length()) : tagStr; // strip leading '@'
+		String tagStr = tag.trim();
+		tagStr = tagStr.startsWith(TAG_KEY) ? tagStr.substring(TAG_KEY.length()) : tagStr; // strip leading '@'
 		if (tagStr.contains(KEY_VALUE_SEPARATOR)) {
 			String[] parts = tagStr.split(KEY_VALUE_SEPARATOR, 2);
 			return new ItemAttributesRQ(parts[0], parts[1]);
