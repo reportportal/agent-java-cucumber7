@@ -84,10 +84,10 @@ public class ExamplesAttributeReportingTest {
 			assertThat(a, anyOf(nullValue(), hasSize(2)));
 			ItemAttributesRQ attribute = a.iterator().next();
 			assertThat(attribute.getKey(), nullValue());
-			assertThat(attribute.getValue(), anyOf(equalTo("@test"), equalTo("@test2")));
+			assertThat(attribute.getValue(), anyOf(equalTo("test"), equalTo("test2")));
 			attribute = a.iterator().next();
 			assertThat(attribute.getKey(), nullValue());
-			assertThat(attribute.getValue(), anyOf(equalTo("@test"), equalTo("@test2")));
+			assertThat(attribute.getValue(), anyOf(equalTo("test"), equalTo("test2")));
 		});
 
 		testIds.forEach(id -> {
