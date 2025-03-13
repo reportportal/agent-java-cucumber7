@@ -51,42 +51,42 @@ import static org.mockito.Mockito.*;
 @SuppressWarnings("unchecked")
 public class EmbeddingTest {
 	@CucumberOptions(features = "src/test/resources/features/embedding/ImageEmbeddingFeature.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ImageTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/embedding/TextEmbeddingFeature.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.text" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.text" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class TextTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/embedding/PdfEmbeddingFeature.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.pdf" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.pdf" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class PdfTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/embedding/ArchiveEmbeddingFeature.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.zip" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.zip" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ZipTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/embedding/EmbedImageWithoutName.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ImageNoNameTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/embedding/EmbedImageWithEmptyName.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.embed.image" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ImageEmptyNameTest extends AbstractTestNGCucumberTests {
 

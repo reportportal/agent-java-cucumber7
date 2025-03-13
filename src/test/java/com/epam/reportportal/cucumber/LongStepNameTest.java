@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
 public class LongStepNameTest {
 
 	@CucumberOptions(features = "src/test/resources/features/LongStepScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class LongStepTest extends AbstractTestNGCucumberTests {
 

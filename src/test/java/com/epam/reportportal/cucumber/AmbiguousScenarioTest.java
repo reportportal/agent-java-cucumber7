@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
 
 public class AmbiguousScenarioTest {
 	@CucumberOptions(features = "src/test/resources/features/AmbiguousTest.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class SimpleTest extends AbstractTestNGCucumberTests {
 

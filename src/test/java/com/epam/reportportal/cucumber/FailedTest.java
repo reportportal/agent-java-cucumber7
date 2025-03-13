@@ -53,7 +53,7 @@ public class FailedTest {
 	private static final String ERROR_LOG_TEXT = "Error:\n" + EXPECTED_STACK_TRACE;
 
 	@CucumberOptions(features = "src/test/resources/features/FailedScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class FailedScenarioReporterTest extends AbstractTestNGCucumberTests {
 

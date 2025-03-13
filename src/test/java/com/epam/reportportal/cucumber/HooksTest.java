@@ -39,28 +39,28 @@ import static org.mockito.Mockito.*;
 public class HooksTest {
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.hooks.step" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.hooks.step" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class StepHooksReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.hooks.scenario" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.hooks.scenario" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ScenarioHooksReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.hooks.all" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.hooks.all" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class AllHooksReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class NoHooksReporterTest extends AbstractTestNGCucumberTests {
 

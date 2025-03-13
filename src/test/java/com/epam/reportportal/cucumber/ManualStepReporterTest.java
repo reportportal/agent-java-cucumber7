@@ -51,7 +51,7 @@ import static org.mockito.Mockito.any;
 
 public class ManualStepReporterTest {
 	@CucumberOptions(features = "src/test/resources/features/ManualStepReporter.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class SimpleTest extends AbstractTestNGCucumberTests {
 

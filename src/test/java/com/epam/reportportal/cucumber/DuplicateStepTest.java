@@ -42,7 +42,7 @@ import static org.mockito.Mockito.*;
 
 public class DuplicateStepTest {
 	@CucumberOptions(features = "src/test/resources/features/DuplicateStep.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.duplicate" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.duplicate" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class DuplicateTest extends AbstractTestNGCucumberTests {
 

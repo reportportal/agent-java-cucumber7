@@ -45,14 +45,14 @@ import static org.mockito.Mockito.*;
 public class TestCaseIdTest {
 
 	@CucumberOptions(features = "src/test/resources/features/belly.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class RunBellyTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/BasicScenarioOutlineParameters.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ScenarioOutlineTest extends AbstractTestNGCucumberTests {
 
@@ -97,8 +97,7 @@ public class TestCaseIdTest {
 	private static final String[] TEST_CASE_IDS = new String[] {
 			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:123;str:\"first\"]]",
 			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345;str:\"second\"]]",
-			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345678;str:\"third\"]]"
-	};
+			"src/test/resources/features/BasicScenarioOutlineParameters.feature/[EXAMPLE:Test with different parameters[parameters:12345678;str:\"third\"]]" };
 
 	@Test
 	public void verify_test_case_id_scenario_outline() {

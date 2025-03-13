@@ -51,20 +51,20 @@ import static org.mockito.Mockito.any;
 public class ParameterTest {
 
 	@CucumberOptions(features = "src/test/resources/features/OneSimpleAndOneScenarioOutline.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class OneSimpleAndOneScenarioOutlineScenarioReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DocStringParameters.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class DocstringParameterTest extends AbstractTestNGCucumberTests {
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DataTableParameter.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class DataTableParameterTest extends AbstractTestNGCucumberTests {
 	}

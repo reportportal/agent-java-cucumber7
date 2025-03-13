@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 public class ExamplesAttributeReportingTest {
 
 	@CucumberOptions(features = "src/test/resources/features/ExamplesTags.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ExamplesTest extends AbstractTestNGCucumberTests {
 

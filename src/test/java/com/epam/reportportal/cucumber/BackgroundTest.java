@@ -51,7 +51,7 @@ import static org.mockito.Mockito.*;
 
 public class BackgroundTest {
 	@CucumberOptions(features = "src/test/resources/features/BackgroundScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.feature" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class MyBackgroundTest extends AbstractTestNGCucumberTests {
 

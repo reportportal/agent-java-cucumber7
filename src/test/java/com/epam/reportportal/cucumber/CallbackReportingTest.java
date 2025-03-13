@@ -50,7 +50,7 @@ import static org.mockito.Mockito.*;
 public class CallbackReportingTest {
 
 	@CucumberOptions(features = "src/test/resources/features/CallbackReportingScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.callback.scenario" }, plugin = { "pretty",
+			"com.epam.reportportal.cucumber.integration.callback.scenario" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.callback.TestScenarioReporter" })
 	public static class TestScenarioReporterRunner extends AbstractTestNGCucumberTests {
 
