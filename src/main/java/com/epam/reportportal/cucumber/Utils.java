@@ -17,7 +17,9 @@
 package com.epam.reportportal.cucumber;
 
 import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import io.cucumber.core.gherkin.Feature;
+import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.Status;
 
 import javax.annotation.Nonnull;
@@ -32,6 +34,7 @@ import java.util.*;
 public class Utils {
 	private static final String EMPTY = "";
 	public static final String TAG_KEY = "@";
+	private static final String KEY_VALUE_SEPARATOR = ":";
 
 	private Utils() {
 		throw new AssertionError("No instances should exist for the class!");
@@ -93,5 +96,34 @@ public class Utils {
 			}
 			return tags;
 		}).orElse(Collections.emptySet());
+	}
+
+	/**
+	 * Parses a rule source and return all declared tags before the rule.
+	 *
+	 * @param rule Cucumber's Rule object
+	 * @return tags set
+	 */
+	@Nonnull
+	public static Set<String> getTags(@Nonnull Node.Rule rule) {
+		// TODO: implement rule tags extraction
+		return Collections.emptySet();
+	}
+
+	/**
+	 * Convert a tag string to a ReportPortal attribute, split by key-value separator ":" if present.
+	 *
+	 * @param tag tag string
+	 * @return attribute object
+	 */
+	public static ItemAttributesRQ toAttribute(String tag) {
+		String tagStr =tag.trim();
+		tagStr = tagStr.startsWith(TAG_KEY)? tagStr.substring(TAG_KEY.length()) : tagStr; // strip leading '@'
+		if (tagStr.contains(KEY_VALUE_SEPARATOR)) {
+			String[] parts = tagStr.split(KEY_VALUE_SEPARATOR, 2);
+			return new ItemAttributesRQ(parts[0], parts[1]);
+		} else {
+			return new ItemAttributesRQ(null, tagStr);
+		}
 	}
 }

@@ -75,7 +75,7 @@ public class AttributeReportingTest {
 		values.forEach(v -> assertThat(attributePairs, hasItem(v)));
 	}
 
-	private static final List<Pair<String, String>> FEATURE_ATTRIBUTES = Arrays.asList(Pair.of(null, "@smoke"), Pair.of(null, "@test"));
+	private static final List<Pair<String, String>> FEATURE_ATTRIBUTES = Arrays.asList(Pair.of(null, "smoke"), Pair.of(null, "test"));
 
 	@Test
 	public void verify_scenario_reporter_attributes() {
@@ -87,7 +87,7 @@ public class AttributeReportingTest {
 
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client).startTestItem(same(suiteId), testCaptor.capture());
-		verifyAttributes(testCaptor.getValue().getAttributes(), Collections.singleton(Pair.of(null, "@ok")));
+		verifyAttributes(testCaptor.getValue().getAttributes(), Collections.singleton(Pair.of(null, "ok")));
 
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());

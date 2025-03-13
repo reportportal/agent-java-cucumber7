@@ -227,7 +227,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	@Nonnull
 	protected Set<ItemAttributesRQ> extractAttributes(@Nonnull Collection<?> tags) {
-		return tags.stream().map(Object::toString).map(tagValue -> new ItemAttributesRQ(null, tagValue)).collect(Collectors.toSet());
+		return tags.stream().map(Object::toString).map(Utils::toAttribute).collect(Collectors.toSet());
 	}
 
 	@FunctionalInterface
@@ -752,6 +752,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(ruleName != null ? buildName(ruleKeyword, COLON_INFIX, ruleName) : ruleKeyword);
 		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setAttributes(extractAttributes(Utils.getTags(rule)));
 		rq.setType("SUITE");
 		return rq;
 	}
