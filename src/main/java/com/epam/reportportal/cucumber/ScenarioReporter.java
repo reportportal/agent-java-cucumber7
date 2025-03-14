@@ -82,6 +82,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final String DOC_STRING_PARAM = "DocString";
 	private static final String DATA_TABLE_PARAM = "DataTable";
 	private static final String UNKNOWN_PARAM = "arg";
+	private static final String TEST_CASE_ID_PREFIX = "@tc_id:";
 	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
 
 	protected static final URI WORKING_DIRECTORY = new File(System.getProperty("user.dir")).toURI();
@@ -337,6 +338,15 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				.collect(Collectors.toList());
 	}
 
+	@Nonnull
+	private static String formatParameters(@Nonnull List<Pair<String, String>> parameters) {
+		String paramString = parameters.stream()
+				.sorted()
+				.map(entry -> entry.getKey() + ":" + entry.getValue())
+				.collect(Collectors.joining(";"));
+		return "[" + paramString + "]";
+	}
+
 	/**
 	 * Returns code reference for feature files by URI and text line number
 	 *
@@ -352,13 +362,13 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (parameters == null) {
 			return baseCodeRef;
 		}
+		return relativePath + "/[EXAMPLE:" + testCase.getName() + formatParameters(parameters) + "]";
+	}
 
-		String paramString = parameters.stream()
-				.sorted()
-				.map(entry -> entry.getKey() + ":" + entry.getValue())
-				.collect(Collectors.joining(";"));
-
-		return relativePath + "/[EXAMPLE:" + testCase.getName() + "[" + paramString + "]]";
+	protected Set<ItemAttributesRQ> getAttributes(TestCase testCase) {
+		Set<String> tags = testCase.getTags().stream().filter(t -> !t.startsWith(TEST_CASE_ID_PREFIX)).collect(Collectors.toSet());
+		execute(testCase.getUri(), f -> tags.removeAll(f.getTags()));
+		return extractAttributes(tags);
 	}
 
 	/**
@@ -370,7 +380,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	@Nonnull
 	protected String getTestCaseId(@Nonnull TestCase testCase, @Nullable List<Pair<String, String>> parameters) {
-		return getCodeRef(testCase, parameters);
+		List<String> tags = testCase.getTags().stream().filter(t -> t.startsWith(TEST_CASE_ID_PREFIX)).collect(Collectors.toList());
+		return tags.isEmpty() ?
+				getCodeRef(testCase, parameters) :
+				tags.get(0).substring(TEST_CASE_ID_PREFIX.length()) + (parameters == null || parameters.isEmpty() ?
+						"" :
+						formatParameters(parameters));
 	}
 
 	/**
@@ -387,9 +402,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		rq.setParameters(ParameterUtils.getParameters((String) null, parameters));
 		String codeRef = getCodeRef(testCase, parameters);
 		rq.setCodeRef(codeRef);
-		Set<String> tags = new HashSet<>(testCase.getTags());
-		execute(testCase.getUri(), f -> tags.removeAll(f.getTags()));
-		rq.setAttributes(extractAttributes(tags));
+		rq.setAttributes(getAttributes(testCase));
 		rq.setStartTime(Calendar.getInstance().getTime());
 		String type = ItemType.STEP.name();
 		rq.setType(type);
