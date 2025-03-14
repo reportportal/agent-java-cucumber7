@@ -125,10 +125,10 @@ public class Utils {
 				return Collections.<String>emptySet();
 			}
 			int lastLine = ruleIndex > 0 ? featureChildren.get(ruleIndex - 1).getLocation().getLine() : feature.getLocation().getLine();
-			List<String> lines = Arrays.asList(feature.getSource().split("\\r?\\n"));
+			String[] lines = feature.getSource().split("\\r?\\n");
 			Set<String> tags = new HashSet<>();
 			for (int i = rule.getLocation().getLine() - 1; i > lastLine; i--) {
-				String line = lines.get(i).trim();
+				String line = lines[i].trim();
 				if (!line.startsWith(TAG_KEY)) {
 					continue;
 				}
