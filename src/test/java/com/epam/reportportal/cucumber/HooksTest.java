@@ -24,6 +24,7 @@ import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,9 +47,16 @@ public class HooksTest {
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
-			"com.epam.reportportal.cucumber.integration.hooks.scenario" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.hooks.scenario.one" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
-	public static class ScenarioHooksReporterTest extends AbstractTestNGCucumberTests {
+	public static class ScenarioSingleHookReporterTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.hooks.scenario.two" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class ScenarioTwoHooksReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
@@ -67,9 +75,13 @@ public class HooksTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final String testId = CommonUtils.namedId("test_");
-	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(3).collect(Collectors.toList());
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String scenarioId = CommonUtils.namedId("scenario_");
+	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(4).collect(Collectors.toList());
+
+	private final List<Pair<String, String>> nestedSteps = stepIds.stream()
+			.flatMap(s -> Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(2).map(ns -> Pair.of(s, ns)))
+			.collect(Collectors.toList());
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -78,7 +90,8 @@ public class HooksTest {
 
 	@BeforeEach
 	public void setup() {
-		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
+		TestUtils.mockLaunch(client, launchId, suiteId, scenarioId, stepIds);
+		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
@@ -95,19 +108,36 @@ public class HooksTest {
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(6)).startTestItem(same(testId), any());
+		verify(client, times(2)).startTestItem(same(scenarioId), any());
+		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any());
+		verify(client, times(2)).startTestItem(same(stepIds.get(1)), any());
 		verify(client, times(10)).log(any(List.class));
 	}
 
 	@Test
 	@SuppressWarnings("unchecked")
-	public void verify_before_after_scenario_reported_in_steps() {
-		TestUtils.runTests(ScenarioHooksReporterTest.class);
+	public void verify_single_before_after_scenario_reported_in_steps() {
+		TestUtils.runTests(ScenarioSingleHookReporterTest.class);
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(4)).startTestItem(same(testId), any());
+		verify(client, times(4)).startTestItem(same(scenarioId), any());
+		verify(client, times(1)).startTestItem(same(stepIds.get(0)), any());
+		verify(client, times(1)).startTestItem(same(stepIds.get(3)), any());
 		verify(client, times(6)).log(any(List.class));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void verify_two_before_after_scenario_reported_in_steps() {
+		TestUtils.runTests(ScenarioTwoHooksReporterTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		verify(client, times(1)).startTestItem(same(suiteId), any());
+		verify(client, times(4)).startTestItem(same(scenarioId), any());
+		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any());
+		verify(client, times(2)).startTestItem(same(stepIds.get(3)), any());
+		verify(client, times(8)).log(any(List.class));
 	}
 
 	@Test
@@ -119,7 +149,7 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 
 		// @BeforeAll and @AfterAll hooks does not emit any events, see: https://github.com/cucumber/cucumber-jvm/issues/2422
-		verify(client, times(2)).startTestItem(same(testId), any());
+		verify(client, times(2)).startTestItem(same(scenarioId), any());
 		verify(client, times(3)).log(any(List.class));
 	}
 
@@ -130,9 +160,8 @@ public class HooksTest {
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
-		verify(client, times(2)).startTestItem(same(testId), any());
+		verify(client, times(2)).startTestItem(same(scenarioId), any());
 		verify(client, times(2)).log(any(List.class));
-
 	}
 }
 

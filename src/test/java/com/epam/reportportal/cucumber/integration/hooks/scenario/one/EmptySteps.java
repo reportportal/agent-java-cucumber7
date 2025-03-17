@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.cucumber.integration.hooks.scenario;
+package com.epam.reportportal.cucumber.integration.hooks.scenario.one;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
