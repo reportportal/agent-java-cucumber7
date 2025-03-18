@@ -45,7 +45,7 @@ public class FeatureContext {
 		if (node instanceof Node.Scenario) {
 			Node.Scenario scenario = (Node.Scenario) node;
 			int line = scenario.getLocation().getLine();
-			scenarios.put(line, new ScenarioContext(uri, ruleQueue.peekLast(), scenario));
+			scenarios.put(line, new ScenarioContext(ruleQueue.peekLast(), scenario));
 		}
 		if (node instanceof Node.ScenarioOutline) {
 			Node.ScenarioOutline scenarioOutline = (Node.ScenarioOutline) node;
@@ -54,7 +54,7 @@ public class FeatureContext {
 					.flatMap(e -> e.elements().stream())
 					.forEach(e -> scenarios.put(
 							e.getLocation().getLine(),
-							new ScenarioContext(uri, ruleQueue.peekLast(), scenarioOutline, e)
+							new ScenarioContext(ruleQueue.peekLast(), scenarioOutline)
 					));
 		}
 	}

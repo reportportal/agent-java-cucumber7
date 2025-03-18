@@ -25,6 +25,7 @@ import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.MemoizingSupplier;
 import com.epam.reportportal.utils.ParameterUtils;
+import com.epam.reportportal.utils.StatusEvaluation;
 import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.reportportal.utils.http.ContentType;
@@ -419,6 +420,45 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		);
 	}
 
+	/**
+	 * Finish a test item with specified status
+	 *
+	 * @param itemId   an ID of the item
+	 * @param status   the status of the item
+	 * @param dateTime a date and time object to use as feature end time
+	 * @return a date and time object of the finish event
+	 */
+	protected Date finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status, @Nullable Date dateTime) {
+		if (itemId == null) {
+			LOGGER.error("BUG: Trying to finish unspecified test item.");
+			return null;
+		}
+		Date endTime = ofNullable(dateTime).orElse(Calendar.getInstance().getTime());
+		FinishTestItemRQ rq = buildFinishTestItemRequest(itemId, endTime, status);
+		//noinspection ReactiveStreamsUnusedPublisher
+		getLaunch().finishTestItem(itemId, rq);
+		return endTime;
+	}
+
+	/**
+	 * Finish a test item with specified status
+	 *
+	 * @param itemId an ID of the item
+	 * @param status the status of the item
+	 */
+	protected void finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status) {
+		finishTestItem(itemId, status, null);
+	}
+
+	/**
+	 * Finish a test item with no specific status
+	 *
+	 * @param itemId an ID of the item
+	 */
+	protected void finishTestItem(@Nullable Maybe<String> itemId) {
+		finishTestItem(itemId, null);
+	}
+
 	private void removeFromTree(Feature featureContext, TestCase scenarioContext) {
 		retrieveLeaf(featureContext.getUri(), itemTree).ifPresent(suiteLeaf -> suiteLeaf.getChildItems()
 				.remove(createKey(scenarioContext.getLocation().getLine())));
@@ -432,6 +472,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	protected void afterScenario(TestCaseFinished event) {
 		TestCase testCase = event.getTestCase();
+		afterHooksSuite(testCase);
 		execute(
 				testCase, (f, s) -> {
 					URI featureUri = f.getUri();
@@ -578,35 +619,26 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @return a pair of type and name
 	 */
 	@Nonnull
-	protected Pair<String, String> getHookTypeAndName(@Nonnull HookType hookType) {
+	protected String getHookName(@Nonnull HookType hookType) {
 		switch (hookType) {
 			case BEFORE:
-				return Pair.of(ItemType.BEFORE_TEST.name(), "Before hooks");
+				return "Before hooks";
 			case AFTER:
-				return Pair.of(ItemType.AFTER_TEST.name(), "After hooks");
+				return "After hooks";
 			case AFTER_STEP:
-				return Pair.of(ItemType.AFTER_METHOD.name(), "After step");
+				return "After step";
 			case BEFORE_STEP:
-				return Pair.of(ItemType.BEFORE_METHOD.name(), "Before step");
+				return "Before step";
 			default:
-				return Pair.of(ItemType.TEST.name(), "Hook");
+				return "Hook";
 		}
 	}
 
-	/**
-	 * Extension point to customize test creation event/request
-	 *
-	 * @param testCase Cucumber's TestCase object
-	 * @param testStep a cucumber step object
-	 * @return Request to ReportPortal
-	 */
-	@Nonnull
-	@SuppressWarnings("unused")
-	protected StartTestItemRQ buildStartHookRequest(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
+	protected StartTestItemRQ buildStartHookSuiteRequest(@Nonnull HookTestStep testStep) {
 		StartTestItemRQ rq = new StartTestItemRQ();
-		Pair<String, String> typeName = getHookTypeAndName(testStep.getHookType());
-		rq.setType(typeName.getKey());
-		rq.setName(typeName.getValue());
+		String name = getHookName(testStep.getHookType());
+		rq.setName(name);
+		rq.setType(ItemType.STEP.name());
 		rq.setStartTime(Calendar.getInstance().getTime());
 		rq.setHasStats(false);
 		return rq;
@@ -624,6 +656,61 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return getLaunch().startTestItem(parentId, rq);
 	}
 
+	protected void beforeHooksSuite(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
+		execute(
+				testCase, (f, s) -> {
+					Maybe<String> hookSuite = s.getHookSuiteId();
+					HookType hookSuiteType = s.getHookSuiteType();
+					HookType hookType = testStep.getHookType();
+					if (hookSuite == null) {
+						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
+						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						s.setHookSuiteId(hookSuiteId);
+						s.setHookSuiteType(hookType);
+					} else if (hookType != hookSuiteType) {
+						// if we have a new hook type, we need to finish the previous one
+						finishTestItem(hookSuite, ItemStatus.PASSED);
+						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
+						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						s.setHookSuiteId(hookSuiteId);
+						s.setHookSuiteType(hookType);
+					}
+				}
+		);
+	}
+
+	protected void afterHooksSuite(@Nonnull TestCase testCase) {
+		execute(
+				testCase, (f, s) -> {
+					Maybe<String> hookSuite = s.getHookSuiteId();
+					if (hookSuite != null) {
+						finishTestItem(hookSuite, s.getHookSuiteStatus());
+						s.setHookSuiteType(null);
+						s.setHookSuiteId(null);
+						s.setHookSuiteStatus(null);
+					}
+				}
+		);
+	}
+
+	/**
+	 * Extension point to customize test creation event/request
+	 *
+	 * @param testCase Cucumber's TestCase object
+	 * @param testStep a cucumber step object
+	 * @return Request to ReportPortal
+	 */
+	@Nonnull
+	@SuppressWarnings("unused")
+	protected StartTestItemRQ buildStartHookRequest(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
+		StartTestItemRQ rq = new StartTestItemRQ();
+		rq.setName(testStep.getCodeLocation());
+		rq.setType(ItemType.STEP.name());
+		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setHasStats(false);
+		return rq;
+	}
+
 	/**
 	 * Called when before/after-hooks are started
 	 *
@@ -633,8 +720,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void beforeHooks(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
 		execute(
 				testCase, (f, s) -> {
+					beforeHooksSuite(testCase, testStep);
 					StartTestItemRQ rq = buildStartHookRequest(testCase, testStep);
-					s.setHookId(startHook(s.getId(), rq));
+					Maybe<String> suiteId = s.getHookSuiteId();
+					s.setHookId(startHook(suiteId == null ? s.getId() : suiteId, rq));
 				}
 		);
 	}
@@ -650,8 +739,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		execute(
 				testCase, (f, s) -> {
 					reportResult(result, (isBefore(step) ? "Before" : "After") + " hook: " + step.getCodeLocation());
-					finishTestItem(s.getHookId(), mapItemStatus(result.getStatus()));
+					ItemStatus hookStatus = mapItemStatus(result.getStatus());
+					finishTestItem(s.getHookId(), hookStatus);
 					s.setHookId(Maybe.empty());
+					ItemStatus hookSuiteStatus = s.getHookSuiteStatus();
+					s.setHookSuiteStatus(StatusEvaluation.evaluateStatus(
+							hookSuiteStatus == null ? ItemStatus.PASSED : hookSuiteStatus,
+							hookStatus
+					));
 				}
 		);
 	}
@@ -889,6 +984,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (testStep instanceof HookTestStep) {
 			afterHooks(testCase, (HookTestStep) testStep, event.getResult());
 		} else if (testStep instanceof PickleStepTestStep) {
+			afterHooksSuite(testCase);
 			afterStep(testCase, (PickleStepTestStep) testStep, event.getResult());
 		} else {
 			LOGGER.warn("Unable to finish unknown step type: {}", testStep.getClass().getSimpleName());
@@ -1020,26 +1116,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Finish a test item with specified status
-	 *
-	 * @param itemId   an ID of the item
-	 * @param status   the status of the item
-	 * @param dateTime a date and time object to use as feature end time
-	 * @return a date and time object of the finish event
-	 */
-	protected Date finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status, @Nullable Date dateTime) {
-		if (itemId == null) {
-			LOGGER.error("BUG: Trying to finish unspecified test item.");
-			return null;
-		}
-		Date endTime = ofNullable(dateTime).orElse(Calendar.getInstance().getTime());
-		FinishTestItemRQ rq = buildFinishTestItemRequest(itemId, endTime, status);
-		//noinspection ReactiveStreamsUnusedPublisher
-		getLaunch().finishTestItem(itemId, rq);
-		return endTime;
-	}
-
-	/**
 	 * Map Cucumber statuses to RP item statuses
 	 *
 	 * @param status - Cucumber status
@@ -1056,25 +1132,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 			}
 			return STATUS_MAPPING.get(status);
 		}
-	}
-
-	/**
-	 * Finish a test item with specified status
-	 *
-	 * @param itemId an ID of the item
-	 * @param status the status of the item
-	 */
-	protected void finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status) {
-		finishTestItem(itemId, status, null);
-	}
-
-	/**
-	 * Finish a test item with no specific status
-	 *
-	 * @param itemId an ID of the item
-	 */
-	protected void finishTestItem(@Nullable Maybe<String> itemId) {
-		finishTestItem(itemId, null);
 	}
 
 	/**

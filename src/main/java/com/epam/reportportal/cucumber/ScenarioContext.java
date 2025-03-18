@@ -16,13 +16,14 @@
 
 package com.epam.reportportal.cucumber;
 
+import com.epam.reportportal.listeners.ItemStatus;
+import io.cucumber.plugin.event.HookType;
 import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.TestCase;
 import io.reactivex.Maybe;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.net.URI;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
@@ -30,34 +31,29 @@ import static java.util.Optional.ofNullable;
 public class ScenarioContext {
 
 	private final int line;
-	private final URI uri;
 	private final RuleContext rule;
 	private final Node.Scenario scenario;
 	private final Node.ScenarioOutline scenarioOutline;
-	private final Node.Example example;
 
 	private TestCase testCase;
 	private Maybe<String> id = Maybe.empty();
-	private Maybe<String> hookSuiteId = Maybe.empty();
 	private Maybe<String> hookId = Maybe.empty();
 	private Maybe<String> stepId = Maybe.empty();
+	private Maybe<String> hookSuiteId;
+	private HookType hookSuiteType;
+	private ItemStatus hookSuiteStatus;
 
-	public ScenarioContext(@Nonnull URI scenarioFilePath, @Nullable RuleContext ruleNode, @Nonnull Node.Scenario scenarioNode) {
-		uri = scenarioFilePath;
+	public ScenarioContext(@Nullable RuleContext ruleNode, @Nonnull Node.Scenario scenarioNode) {
 		rule = ruleNode;
 		scenario = scenarioNode;
 		scenarioOutline = null;
-		example = null;
 		line = scenario.getLocation().getLine();
 	}
 
-	public ScenarioContext(@Nonnull URI scenarioFilePath, @Nullable RuleContext ruleNode, @Nonnull Node.ScenarioOutline scenarioOutlineNode,
-			@Nonnull Node.Example exampleNode) {
-		uri = scenarioFilePath;
+	public ScenarioContext(@Nullable RuleContext ruleNode, @Nonnull Node.ScenarioOutline scenarioOutlineNode) {
 		rule = ruleNode;
 		scenario = null;
 		scenarioOutline = scenarioOutlineNode;
-		example = exampleNode;
 		line = scenarioOutline.getLocation().getLine();
 	}
 
@@ -81,11 +77,6 @@ public class ScenarioContext {
 	}
 
 	@Nonnull
-	public URI getUri() {
-		return uri;
-	}
-
-	@Nonnull
 	public Maybe<String> getId() {
 		return id;
 	}
@@ -94,13 +85,31 @@ public class ScenarioContext {
 		this.id = id;
 	}
 
-	@Nonnull
+	@Nullable
 	public Maybe<String> getHookSuiteId(){
 		return  hookSuiteId;
 	}
 
-	public void setHookSuiteId(@Nonnull Maybe<String> hookSuiteId) {
+	public void setHookSuiteId(@Nullable Maybe<String> hookSuiteId) {
 		this.hookSuiteId = hookSuiteId;
+	}
+
+	@Nullable
+	public HookType getHookSuiteType(){
+		return  hookSuiteType;
+	}
+
+	public void setHookSuiteType(@Nullable HookType hookSuiteType) {
+		this.hookSuiteType = hookSuiteType;
+	}
+
+	@Nullable
+	public ItemStatus getHookSuiteStatus() {
+		return hookSuiteStatus;
+	}
+
+	public void setHookSuiteStatus(@Nullable ItemStatus hookSuiteStatus) {
+		this.hookSuiteStatus = hookSuiteStatus;
 	}
 
 	public void setHookId(@Nonnull Maybe<String> hookStepId) {
@@ -119,10 +128,5 @@ public class ScenarioContext {
 	@Nonnull
 	public Maybe<String> getStepId() {
 		return stepId;
-	}
-
-	@Nonnull
-	public Optional<Node.Example> getExample() {
-		return ofNullable(example);
 	}
 }

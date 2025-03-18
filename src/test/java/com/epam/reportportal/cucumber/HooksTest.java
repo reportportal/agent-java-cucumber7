@@ -137,7 +137,7 @@ public class HooksTest {
 		verify(client, times(4)).startTestItem(same(scenarioId), any());
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any());
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), any());
-		verify(client, times(8)).log(any(List.class));
+		verify(client, times(10)).log(any(List.class));
 	}
 
 	@Test
