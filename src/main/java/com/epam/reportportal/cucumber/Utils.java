@@ -17,13 +17,19 @@
 package com.epam.reportportal.cucumber;
 
 import com.epam.reportportal.listeners.ItemStatus;
+import com.epam.reportportal.utils.MimeTypeDetector;
+import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import io.cucumber.core.gherkin.Feature;
 import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.Status;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -34,6 +40,8 @@ import java.util.stream.IntStream;
  * @author Vadzim Hushchanskou
  */
 public class Utils {
+	private static  final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+
 	private static final String EMPTY = "";
 	public static final String TAG_KEY = "@";
 	private static final String KEY_VALUE_SEPARATOR = ":";
@@ -153,5 +161,37 @@ public class Utils {
 		} else {
 			return new ItemAttributesRQ(null, tagStr);
 		}
+	}
+
+	/**
+	 * Format a list of parameters into a string representation to use in code reference and Test Case ID.
+	 *
+	 * @param parameters list of parameters as key-value pairs
+	 * @return formatted string representation of parameters
+	 */
+	@Nonnull
+	public static String formatParameters(@Nonnull List<Pair<String, String>> parameters) {
+		String paramString = parameters.stream()
+				.sorted()
+				.map(entry -> entry.getKey() + ":" + entry.getValue())
+				.collect(Collectors.joining(";"));
+		return "[" + paramString + "]";
+	}
+
+	/**
+	 * Detects the MIME type of the given byte array using the MimeTypeDetector.
+	 *
+	 * @param data the byte array to analyze
+	 * @param name an optional name to help with detection (can be null)
+	 * @return the detected MIME type as a String, or null if detection fails
+	 */
+	@Nullable
+	public static String getDataType(@Nonnull byte[] data, @Nullable String name) {
+		try {
+			return MimeTypeDetector.detect(ByteSource.wrap(data), name);
+		} catch (IOException e) {
+			LOGGER.warn("Unable to detect MIME type", e);
+		}
+		return null;
 	}
 }

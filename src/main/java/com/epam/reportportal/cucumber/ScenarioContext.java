@@ -38,6 +38,7 @@ public class ScenarioContext {
 
 	private TestCase testCase;
 	private Maybe<String> id = Maybe.empty();
+	private Maybe<String> hookSuiteId = Maybe.empty();
 	private Maybe<String> hookId = Maybe.empty();
 	private Maybe<String> stepId = Maybe.empty();
 
@@ -91,6 +92,15 @@ public class ScenarioContext {
 
 	public void setId(@Nonnull Maybe<String> id) {
 		this.id = id;
+	}
+
+	@Nonnull
+	public Maybe<String> getHookSuiteId(){
+		return  hookSuiteId;
+	}
+
+	public void setHookSuiteId(@Nonnull Maybe<String> hookSuiteId) {
+		this.hookSuiteId = hookSuiteId;
 	}
 
 	public void setHookId(@Nonnull Maybe<String> hookStepId) {

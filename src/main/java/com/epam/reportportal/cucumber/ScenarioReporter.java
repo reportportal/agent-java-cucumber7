@@ -24,7 +24,6 @@ import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.MemoizingSupplier;
-import com.epam.reportportal.utils.MimeTypeDetector;
 import com.epam.reportportal.utils.ParameterUtils;
 import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
@@ -73,9 +72,11 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * @author Vadzim Hushchanskou
  */
 public class ScenarioReporter implements ConcurrentEventListener {
+	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
+	protected static final URI WORKING_DIRECTORY = new File(System.getProperty("user.dir")).toURI();
+	protected static final String DOCSTRING_DECORATOR = "\n\"\"\"\n";
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioReporter.class);
 	private static final ThreadLocal<ScenarioReporter> INSTANCES = new InheritableThreadLocal<>();
-
 	private static final String AGENT_PROPERTIES_FILE = "agent.properties";
 	private static final String COLON_INFIX = ": ";
 	private static final String SKIPPED_ISSUE_KEY = "skippedIssue";
@@ -83,10 +84,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final String DATA_TABLE_PARAM = "DataTable";
 	private static final String UNKNOWN_PARAM = "arg";
 	private static final String TEST_CASE_ID_PREFIX = "@tc_id:";
-	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
-
-	protected static final URI WORKING_DIRECTORY = new File(System.getProperty("user.dir")).toURI();
-	protected static final String DOCSTRING_DECORATOR = "\n\"\"\"\n";
 	private static final String ERROR_FORMAT = "Error:\n%s";
 
 	private final Map<URI, FeatureContext> featureContextMap = new ConcurrentHashMap<>();
@@ -106,6 +103,33 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * This map uses to record errors to append to the description.
 	 */
 	private final Map<Maybe<String>, Throwable> errorMap = new ConcurrentHashMap<>();
+	private final Supplier<Launch> launch = new MemoizingSupplier<>(new Supplier<>() {
+
+		/* should not be lazy */
+		private final Date startTime = Calendar.getInstance().getTime();
+
+		@Override
+		public Launch get() {
+			StartLaunchRQ rq = buildStartLaunchRq(startTime, getReportPortal().getParameters());
+			Launch myLaunch = getReportPortal().newLaunch(rq);
+			itemTree.setLaunchId(myLaunch.start());
+			return myLaunch;
+		}
+	});
+
+	public ScenarioReporter() {
+		INSTANCES.set(this);
+	}
+
+	/**
+	 * Returns a reporter instance for the current thread.
+	 *
+	 * @return reporter instance for the current thread
+	 */
+	@Nonnull
+	public static ScenarioReporter getCurrent() {
+		return INSTANCES.get();
+	}
 
 	/**
 	 * A method for creation a Start Launch request which will be sent to Report Portal. You can customize it by overriding the method.
@@ -138,40 +162,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return rq;
 	}
 
-	private final Supplier<Launch> launch = new MemoizingSupplier<>(new Supplier<>() {
-
-		/* should not be lazy */
-		private final Date startTime = Calendar.getInstance().getTime();
-
-		@Override
-		public Launch get() {
-			StartLaunchRQ rq = buildStartLaunchRq(startTime, getReportPortal().getParameters());
-			Launch myLaunch = getReportPortal().newLaunch(rq);
-			itemTree.setLaunchId(myLaunch.start());
-			return myLaunch;
-		}
-	});
-
-	public ScenarioReporter() {
-		INSTANCES.set(this);
-	}
-
 	/**
 	 * @return a full Test Item Tree with attributes
 	 */
 	@Nonnull
 	public TestItemTree getItemTree() {
 		return itemTree;
-	}
-
-	/**
-	 * Returns a reporter instance for the current thread.
-	 *
-	 * @return reporter instance for the current thread
-	 */
-	@Nonnull
-	public static ScenarioReporter getCurrent() {
-		return INSTANCES.get();
 	}
 
 	/**
@@ -229,11 +225,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Nonnull
 	protected Set<ItemAttributesRQ> extractAttributes(@Nonnull Collection<?> tags) {
 		return tags.stream().map(Object::toString).map(Utils::toAttribute).collect(Collectors.toSet());
-	}
-
-	@FunctionalInterface
-	private interface FeatureContextAware {
-		void executeWithContext(@Nonnull FeatureContext featureContext);
 	}
 
 	private void execute(@Nonnull URI uri, @Nonnull FeatureContextAware context) {
@@ -338,15 +329,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				.collect(Collectors.toList());
 	}
 
-	@Nonnull
-	private static String formatParameters(@Nonnull List<Pair<String, String>> parameters) {
-		String paramString = parameters.stream()
-				.sorted()
-				.map(entry -> entry.getKey() + ":" + entry.getValue())
-				.collect(Collectors.joining(";"));
-		return "[" + paramString + "]";
-	}
-
 	/**
 	 * Returns code reference for feature files by URI and text line number
 	 *
@@ -420,12 +402,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Nonnull
 	protected Maybe<String> startScenario(@Nonnull Maybe<String> featureId, @Nonnull StartTestItemRQ startScenarioRq) {
 		return getLaunch().startTestItem(featureId, startScenarioRq);
-	}
-
-	@FunctionalInterface
-	private interface ScenarioContextAware {
-
-		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 
 	private void execute(@Nonnull TestCase testCase, @Nonnull ScenarioContextAware context) {
@@ -701,16 +677,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
-	@Nullable
-	private static String getDataType(@Nonnull byte[] data, @Nullable String name) {
-		try {
-			return MimeTypeDetector.detect(ByteSource.wrap(data), name);
-		} catch (IOException e) {
-			LOGGER.warn("Unable to detect MIME type", e);
-		}
-		return null;
-	}
-
 	/**
 	 * Send a log with data attached.
 	 *
@@ -905,6 +871,44 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		});
 	}
 
+	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
+		TestStep testStep = event.getTestStep();
+		TestCase testCase = event.getTestCase();
+		if (testStep instanceof HookTestStep) {
+			beforeHooks(testCase, (HookTestStep) testStep);
+		} else if (testStep instanceof PickleStepTestStep) {
+			beforeStep(testCase, (PickleStepTestStep) testStep);
+		} else {
+			LOGGER.warn("Unable to start unknown step type: {}", testStep.getClass().getSimpleName());
+		}
+	}
+
+	protected void handleTestStepFinished(@Nonnull TestStepFinished event) {
+		TestStep testStep = event.getTestStep();
+		TestCase testCase = event.getTestCase();
+		if (testStep instanceof HookTestStep) {
+			afterHooks(testCase, (HookTestStep) testStep, event.getResult());
+		} else if (testStep instanceof PickleStepTestStep) {
+			afterStep(testCase, (PickleStepTestStep) testStep, event.getResult());
+		} else {
+			LOGGER.warn("Unable to finish unknown step type: {}", testStep.getClass().getSimpleName());
+		}
+	}
+
+	private void removeFromTree(Feature feature) {
+		itemTree.getTestItems().remove(createKey(feature.getUri()));
+	}
+
+	protected void handleEndOfFeature() {
+		featureContextMap.values().forEach(f -> {
+			Date featureCompletionDateTime = featureEndTime.get(f.getUri());
+			f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
+			finishTestItem(f.getId(), null, featureCompletionDateTime);
+			removeFromTree(f.getFeature());
+		});
+		featureContextMap.clear();
+	}
+
 	protected EventHandler<TestRunStarted> getTestRunStartedHandler() {
 		return event -> beforeLaunch();
 	}
@@ -963,53 +967,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Override
 	public void setEventPublisher(EventPublisher publisher) {
 		publisher.registerHandlerFor(TestRunStarted.class, getTestRunStartedHandler());
+		publisher.registerHandlerFor(TestRunFinished.class, getTestRunFinishedHandler());
 		publisher.registerHandlerFor(TestSourceParsed.class, getTestSourceParsedHandler());
 		publisher.registerHandlerFor(TestCaseStarted.class, getTestCaseStartedHandler());
+		publisher.registerHandlerFor(TestCaseFinished.class, getTestCaseFinishedHandler());
 		publisher.registerHandlerFor(TestStepStarted.class, getTestStepStartedHandler());
 		publisher.registerHandlerFor(TestStepFinished.class, getTestStepFinishedHandler());
-		publisher.registerHandlerFor(TestCaseFinished.class, getTestCaseFinishedHandler());
-		publisher.registerHandlerFor(TestRunFinished.class, getTestRunFinishedHandler());
 		publisher.registerHandlerFor(EmbedEvent.class, getEmbedEventHandler());
 		publisher.registerHandlerFor(WriteEvent.class, getWriteEventHandler());
-		publisher.registerHandlerFor(WriteEvent.class, getWriteEventHandler());
-	}
-
-	private void removeFromTree(Feature feature) {
-		itemTree.getTestItems().remove(createKey(feature.getUri()));
-	}
-
-	protected void handleEndOfFeature() {
-		featureContextMap.values().forEach(f -> {
-			Date featureCompletionDateTime = featureEndTime.get(f.getUri());
-			f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
-			finishTestItem(f.getId(), null, featureCompletionDateTime);
-			removeFromTree(f.getFeature());
-		});
-		featureContextMap.clear();
-	}
-
-	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
-		TestStep testStep = event.getTestStep();
-		TestCase testCase = event.getTestCase();
-		if (testStep instanceof HookTestStep) {
-			beforeHooks(testCase, (HookTestStep) testStep);
-		} else if (testStep instanceof PickleStepTestStep) {
-			beforeStep(testCase, (PickleStepTestStep) testStep);
-		} else {
-			LOGGER.warn("Unable to start unknown step type: {}", testStep.getClass().getSimpleName());
-		}
-	}
-
-	protected void handleTestStepFinished(@Nonnull TestStepFinished event) {
-		TestStep testStep = event.getTestStep();
-		TestCase testCase = event.getTestCase();
-		if (testStep instanceof HookTestStep) {
-			afterHooks(testCase, (HookTestStep) testStep, event.getResult());
-		} else if (testStep instanceof PickleStepTestStep) {
-			afterStep(testCase, (PickleStepTestStep) testStep, event.getResult());
-		} else {
-			LOGGER.warn("Unable to finish unknown step type: {}", testStep.getClass().getSimpleName());
-		}
 	}
 
 	/**
@@ -1194,5 +1159,16 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@SuppressWarnings("unused")
 	protected String getDescription(@Nonnull TestCase testCase, @Nonnull URI uri) {
 		return uri.toString();
+	}
+
+	@FunctionalInterface
+	private interface FeatureContextAware {
+		void executeWithContext(@Nonnull FeatureContext featureContext);
+	}
+
+	@FunctionalInterface
+	private interface ScenarioContextAware {
+
+		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 }
