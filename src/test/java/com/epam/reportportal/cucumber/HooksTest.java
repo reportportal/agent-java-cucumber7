@@ -40,9 +40,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
+
 
 public class HooksTest {
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
@@ -70,6 +71,13 @@ public class HooksTest {
 			"com.epam.reportportal.cucumber.integration.hooks.scenario.two" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class TwoScenarioTwoHooksReporterTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.hooks.scenario.fail" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class ScenarioTwoHooksOneBeforeFailedReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
@@ -238,6 +246,59 @@ public class HooksTest {
 		verify(client, times(19)).finishTestItem(anyString(), finishCaptor.capture());
 		List<FinishTestItemRQ> finishSteps = finishCaptor.getAllValues();
 		finishSteps.subList(0, finishSteps.size() - 2).forEach(step -> assertThat(step.getStatus(), equalTo(ItemStatus.PASSED.name())));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void verify_two_before_after_one_before_failed_scenarios_reported_in_steps() {
+		TestUtils.runTests(ScenarioTwoHooksOneBeforeFailedReporterTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		verify(client, times(1)).startTestItem(same(suiteId), any());
+		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(4)).startTestItem(same(scenarioIds.get(0)), stepCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> beforeScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
+		verify(client, times(8)).log(any(List.class));
+
+		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
+		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
+		assertThat(steps.get(steps.size() - 1).getName(), equalTo("After hooks"));
+
+		List<StartTestItemRQ> beforeSteps = beforeScenarioCaptor.getAllValues();
+		beforeSteps.forEach(beforeStep -> assertThat(
+				beforeStep.getName(),
+				anyOf(
+						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_before_hook()"),
+						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_before_hook()")
+				)
+		));
+
+		List<StartTestItemRQ> afterSteps = afterScenarioCaptor.getAllValues();
+		afterSteps.forEach(afterStep -> assertThat(
+				afterStep.getName(),
+				anyOf(
+						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_after_hook()"),
+						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_after_hook()")
+				)
+		));
+
+		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(10)).finishTestItem(anyString(), finishCaptor.capture());
+		List<FinishTestItemRQ> finishSteps = finishCaptor.getAllValues();
+		assertThat(finishSteps.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(finishSteps.get(1).getStatus(), equalTo(ItemStatus.PASSED.name()));
+		assertThat(finishSteps.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
+
+		// Scenario steps are skipped due to the failure in the first before hook
+		finishSteps.subList(3, 5).forEach(step -> assertThat(step.getStatus(), equalTo(ItemStatus.SKIPPED.name())));
+
+		// After scenario hooks are still executed even if before fails
+		finishSteps.subList(5, 8).forEach(step -> assertThat(step.getStatus(), equalTo(ItemStatus.PASSED.name())));
+		assertThat(finishSteps.get(8).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(finishSteps.get(9).getStatus(), nullValue());
 	}
 
 	@Test
