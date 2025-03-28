@@ -40,7 +40,7 @@ import java.util.stream.IntStream;
  * @author Vadzim Hushchanskou
  */
 public class Utils {
-	private static  final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
 
 	private static final String EMPTY = "";
 	public static final String TAG_KEY = "@";

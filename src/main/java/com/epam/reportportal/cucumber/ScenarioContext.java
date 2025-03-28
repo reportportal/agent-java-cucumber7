@@ -16,8 +16,7 @@
 
 package com.epam.reportportal.cucumber;
 
-import com.epam.reportportal.listeners.ItemStatus;
-import io.cucumber.plugin.event.HookType;
+import com.epam.reportportal.cucumber.util.HookSuite;
 import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.TestCase;
 import io.reactivex.Maybe;
@@ -39,9 +38,7 @@ public class ScenarioContext {
 	private Maybe<String> id = Maybe.empty();
 	private Maybe<String> hookId = Maybe.empty();
 	private Maybe<String> stepId = Maybe.empty();
-	private Maybe<String> hookSuiteId;
-	private HookType hookSuiteType;
-	private ItemStatus hookSuiteStatus;
+	private HookSuite hookSuite;
 
 	public ScenarioContext(@Nullable RuleContext ruleNode, @Nonnull Node.Scenario scenarioNode) {
 		rule = ruleNode;
@@ -86,30 +83,12 @@ public class ScenarioContext {
 	}
 
 	@Nullable
-	public Maybe<String> getHookSuiteId(){
-		return  hookSuiteId;
+	public HookSuite getHookSuite() {
+		return hookSuite;
 	}
 
-	public void setHookSuiteId(@Nullable Maybe<String> hookSuiteId) {
-		this.hookSuiteId = hookSuiteId;
-	}
-
-	@Nullable
-	public HookType getHookSuiteType(){
-		return  hookSuiteType;
-	}
-
-	public void setHookSuiteType(@Nullable HookType hookSuiteType) {
-		this.hookSuiteType = hookSuiteType;
-	}
-
-	@Nullable
-	public ItemStatus getHookSuiteStatus() {
-		return hookSuiteStatus;
-	}
-
-	public void setHookSuiteStatus(@Nullable ItemStatus hookSuiteStatus) {
-		this.hookSuiteStatus = hookSuiteStatus;
+	public void setHookSuite(@Nullable HookSuite hookSuite) {
+		this.hookSuite = hookSuite;
 	}
 
 	public void setHookId(@Nonnull Maybe<String> hookStepId) {

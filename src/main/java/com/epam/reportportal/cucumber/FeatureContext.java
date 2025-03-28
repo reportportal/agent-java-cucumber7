@@ -52,10 +52,7 @@ public class FeatureContext {
 			scenarioOutline.elements()
 					.stream()
 					.flatMap(e -> e.elements().stream())
-					.forEach(e -> scenarios.put(
-							e.getLocation().getLine(),
-							new ScenarioContext(ruleQueue.peekLast(), scenarioOutline)
-					));
+					.forEach(e -> scenarios.put(e.getLocation().getLine(), new ScenarioContext(ruleQueue.peekLast(), scenarioOutline)));
 		}
 	}
 

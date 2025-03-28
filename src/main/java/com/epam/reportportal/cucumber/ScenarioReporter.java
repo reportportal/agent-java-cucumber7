@@ -16,6 +16,7 @@
 
 package com.epam.reportportal.cucumber;
 
+import com.epam.reportportal.cucumber.util.HookSuite;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
@@ -25,7 +26,6 @@ import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.tree.TestItemTree;
 import com.epam.reportportal.utils.MemoizingSupplier;
 import com.epam.reportportal.utils.ParameterUtils;
-import com.epam.reportportal.utils.StatusEvaluation;
 import com.epam.reportportal.utils.files.ByteSource;
 import com.epam.reportportal.utils.formatting.MarkdownUtils;
 import com.epam.reportportal.utils.http.ContentType;
@@ -465,6 +465,51 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
+	 * Start before/after-hook item on Report Portal
+	 *
+	 * @param parentId parent item id
+	 * @param rq       hook start request
+	 * @return hook item id
+	 */
+	@Nonnull
+	protected Maybe<String> startHook(@Nonnull Maybe<String> parentId, @Nonnull StartTestItemRQ rq) {
+		return getLaunch().startTestItem(parentId, rq);
+	}
+
+	protected void beforeHooksSuite(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
+		execute(
+				testCase, (f, s) -> {
+					HookSuite hookSuite = s.getHookSuite();
+					HookType hookSuiteType = ofNullable(hookSuite).map(HookSuite::getType).orElse(null);
+					HookType hookType = testStep.getHookType();
+					if (hookSuite == null) {
+						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
+						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
+					} else if (hookType != hookSuiteType) {
+						// if we have a new hook type, we need to finish the previous one
+						finishTestItem(hookSuite.getId(), hookSuite.getStatus());
+						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
+						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
+					}
+				}
+		);
+	}
+
+	protected void afterHooksSuite(@Nonnull TestCase testCase) {
+		execute(
+				testCase, (f, s) -> {
+					HookSuite hookSuite = s.getHookSuite();
+					if (hookSuite != null) {
+						finishTestItem(hookSuite.getId(), hookSuite.getStatus());
+						s.setHookSuite(null);
+					}
+				}
+		);
+	}
+
+	/**
 	 * Finish Cucumber scenario
 	 * Put scenario end time in a map to check last scenario end time per feature
 	 *
@@ -575,6 +620,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void beforeStep(@Nonnull TestCase testCase, @Nonnull PickleStepTestStep step) {
 		execute(
 				testCase, (f, s) -> {
+					afterHooksSuite(testCase);
 					String stepPrefix = step.getStep().getLocation().getLine() < s.getLine() ? BACKGROUND_PREFIX : null;
 					StartTestItemRQ rq = buildStartStepRequest(step, stepPrefix, step.getStep().getKeyword());
 					Maybe<String> stepId = startStep(s.getId(), rq);
@@ -645,55 +691,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Start before/after-hook item on Report Portal
-	 *
-	 * @param parentId parent item id
-	 * @param rq       hook start request
-	 * @return hook item id
-	 */
-	@Nonnull
-	protected Maybe<String> startHook(@Nonnull Maybe<String> parentId, @Nonnull StartTestItemRQ rq) {
-		return getLaunch().startTestItem(parentId, rq);
-	}
-
-	protected void beforeHooksSuite(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
-		execute(
-				testCase, (f, s) -> {
-					Maybe<String> hookSuite = s.getHookSuiteId();
-					HookType hookSuiteType = s.getHookSuiteType();
-					HookType hookType = testStep.getHookType();
-					if (hookSuite == null) {
-						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
-						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
-						s.setHookSuiteId(hookSuiteId);
-						s.setHookSuiteType(hookType);
-					} else if (hookType != hookSuiteType) {
-						// if we have a new hook type, we need to finish the previous one
-						finishTestItem(hookSuite, ItemStatus.PASSED);
-						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
-						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
-						s.setHookSuiteId(hookSuiteId);
-						s.setHookSuiteType(hookType);
-					}
-				}
-		);
-	}
-
-	protected void afterHooksSuite(@Nonnull TestCase testCase) {
-		execute(
-				testCase, (f, s) -> {
-					Maybe<String> hookSuite = s.getHookSuiteId();
-					if (hookSuite != null) {
-						finishTestItem(hookSuite, s.getHookSuiteStatus());
-						s.setHookSuiteType(null);
-						s.setHookSuiteId(null);
-						s.setHookSuiteStatus(null);
-					}
-				}
-		);
-	}
-
-	/**
 	 * Extension point to customize test creation event/request
 	 *
 	 * @param testCase Cucumber's TestCase object
@@ -722,8 +719,8 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				testCase, (f, s) -> {
 					beforeHooksSuite(testCase, testStep);
 					StartTestItemRQ rq = buildStartHookRequest(testCase, testStep);
-					Maybe<String> suiteId = s.getHookSuiteId();
-					s.setHookId(startHook(suiteId == null ? s.getId() : suiteId, rq));
+					HookSuite hookSuite = s.getHookSuite();
+					s.setHookId(startHook(hookSuite == null ? s.getId() : hookSuite.getId(), rq));
 				}
 		);
 	}
@@ -742,11 +739,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					ItemStatus hookStatus = mapItemStatus(result.getStatus());
 					finishTestItem(s.getHookId(), hookStatus);
 					s.setHookId(Maybe.empty());
-					ItemStatus hookSuiteStatus = s.getHookSuiteStatus();
-					s.setHookSuiteStatus(StatusEvaluation.evaluateStatus(
-							hookSuiteStatus == null ? ItemStatus.PASSED : hookSuiteStatus,
-							hookStatus
-					));
+					HookSuite hookSuite = s.getHookSuite();
+					if (hookSuite == null || hookStatus == null) {
+						return;
+					}
+					hookSuite.updateStatus(hookStatus);
 				}
 		);
 	}
