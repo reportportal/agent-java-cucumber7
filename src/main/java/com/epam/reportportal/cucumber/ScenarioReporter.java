@@ -483,16 +483,37 @@ public class ScenarioReporter implements ConcurrentEventListener {
 						// if we have the same hook type, we should operate with the same hook suite
 						return;
 					}
+
+					final Maybe<String> parentId;
+					// Special handling for BEFORE_STEP hooks
+					if (hookType == HookType.BEFORE_STEP) {
+						// Create a virtual step for BEFORE_STEP hooks
+						Maybe<String> virtualStepId = getLaunch().createVirtualItem();
+						// Set the virtual step in the scenario context
+						s.setStep(new Step(virtualStepId, Step.Type.VIRTUAL));
+						// Use virtual step as parent for hook suite
+						parentId = virtualStepId;
+					} else if (hookType == HookType.AFTER_STEP) {
+						// TODO: make it use "previousStep" from the context
+						parentId = s.getStep().map(Step::getId).orElseGet(() -> {
+							LOGGER.warn("Unable to locate step ID for AFTER_STEP hook. Using scenario ID as parent.");
+							return s.getId();
+						});
+					} else {
+						parentId = s.getId();
+					}
+
 					hookSuiteOptional.map(hookSuite -> {
 						// if we have a new hook type, we need to finish the previous suite and create new one
 						finishTestItem(hookSuite.getId(), hookSuite.getStatus());
 						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
-						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						Maybe<String> hookSuiteId = startHook(parentId, hookSuiteRq);
 						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
 						return true;
 					}).orElseGet(() -> {
+						// if we don't have a hook suite, we need to create one
 						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
-						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						Maybe<String> hookSuiteId = startHook(parentId, hookSuiteRq);
 						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
 						return false;
 					});
@@ -642,7 +663,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 
 					Optional<Step> currentStepOptional = s.getStep();
 					Maybe<String> stepId = currentStepOptional.map(currentStep -> {
-						Maybe<String> sId;
+						final Maybe<String> sId;
 						if (currentStep.getType() == Step.Type.VIRTUAL) {
 							// For VIRTUAL step, use startVirtualTestItem
 							sId = startVirtualStep(s.getId(), currentStep.getId(), rq);
@@ -1027,6 +1048,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (testStep instanceof HookTestStep) {
 			beforeHooks(testCase, (HookTestStep) testStep);
 		} else if (testStep instanceof PickleStepTestStep) {
+			afterHooksSuite(testCase);
 			beforeStep(testCase, (PickleStepTestStep) testStep);
 		} else {
 			LOGGER.warn("Unable to start unknown step type: {}", testStep.getClass().getSimpleName());
@@ -1039,7 +1061,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (testStep instanceof HookTestStep) {
 			afterHooks(testCase, (HookTestStep) testStep, event.getResult());
 		} else if (testStep instanceof PickleStepTestStep) {
-			afterHooksSuite(testCase);
 			afterStep(testCase, (PickleStepTestStep) testStep, event.getResult());
 		} else {
 			LOGGER.warn("Unable to finish unknown step type: {}", testStep.getClass().getSimpleName());
@@ -1284,5 +1305,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 }
+
 
 
