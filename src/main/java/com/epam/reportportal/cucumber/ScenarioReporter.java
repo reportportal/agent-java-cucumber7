@@ -477,20 +477,25 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void beforeHooksSuite(@Nonnull TestCase testCase, @Nonnull HookTestStep testStep) {
 		execute(
 				testCase, (f, s) -> {
-					HookSuite hookSuite = s.getHookSuite();
-					HookType hookSuiteType = ofNullable(hookSuite).map(HookSuite::getType).orElse(null);
 					HookType hookType = testStep.getHookType();
-					if (hookSuite == null) {
-						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
-						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
-						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
-					} else if (hookType != hookSuiteType) {
-						// if we have a new hook type, we need to finish the previous one
+					Optional<HookSuite> hookSuiteOptional = s.getHookSuite();
+					if (hookType == hookSuiteOptional.map(HookSuite::getType).orElse(null)) {
+						// if we have the same hook type, we should operate with the same hook suite
+						return;
+					}
+					hookSuiteOptional.map(hookSuite -> {
+						// if we have a new hook type, we need to finish the previous suite and create new one
 						finishTestItem(hookSuite.getId(), hookSuite.getStatus());
 						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
 						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
 						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
-					}
+						return true;
+					}).orElseGet(() -> {
+						StartTestItemRQ hookSuiteRq = buildStartHookSuiteRequest(testStep);
+						Maybe<String> hookSuiteId = startHook(s.getId(), hookSuiteRq);
+						s.setHookSuite(new HookSuite(hookSuiteId, hookType, ItemStatus.PASSED));
+						return false;
+					});
 				}
 		);
 	}
@@ -498,11 +503,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void afterHooksSuite(@Nonnull TestCase testCase) {
 		execute(
 				testCase, (f, s) -> {
-					HookSuite hookSuite = s.getHookSuite();
-					if (hookSuite != null) {
-						finishTestItem(hookSuite.getId(), hookSuite.getStatus());
+					Optional<HookSuite> hookSuite = s.getHookSuite();
+					hookSuite.ifPresent(suite -> {
+						finishTestItem(suite.getId(), suite.getStatus());
 						s.setHookSuite(null);
-					}
+					});
 				}
 		);
 	}
@@ -717,8 +722,8 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				testCase, (f, s) -> {
 					beforeHooksSuite(testCase, testStep);
 					StartTestItemRQ rq = buildStartHookRequest(testCase, testStep);
-					HookSuite hookSuite = s.getHookSuite();
-					s.setHookId(startHook(hookSuite == null ? s.getId() : hookSuite.getId(), rq));
+					Optional<HookSuite> hookSuite = s.getHookSuite();
+					s.setHookId(startHook(hookSuite.map(HookSuite::getId).orElseGet(s::getId), rq));
 				}
 		);
 	}
@@ -737,11 +742,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					ItemStatus hookStatus = mapItemStatus(result.getStatus());
 					finishTestItem(s.getHookId(), hookStatus);
 					s.setHookId(Maybe.empty());
-					HookSuite hookSuite = s.getHookSuite();
-					if (hookSuite == null || hookStatus == null) {
+					Optional<HookSuite> hookSuite = s.getHookSuite();
+					if (hookSuite.isEmpty() || hookStatus == null) {
 						return;
 					}
-					hookSuite.updateStatus(hookStatus);
+					hookSuite.get().updateStatus(hookStatus);
 				}
 		);
 	}

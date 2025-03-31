@@ -169,11 +169,11 @@ public class ScenarioContext {
 	 * Returns the hook suite for this scenario.
 	 * The hook suite represents a collection of hooks of the same type (before, after, etc.).
 	 *
-	 * @return the hook suite, or null if not set
+	 * @return an Optional containing the hook suite, or empty if not set
 	 */
-	@Nullable
-	public HookSuite getHookSuite() {
-		return hookSuite;
+	@Nonnull
+	public Optional<HookSuite> getHookSuite() {
+		return ofNullable(hookSuite);
 	}
 
 	/**
