@@ -72,9 +72,9 @@ public class ScenarioContext {
 	private Maybe<String> hookId = Maybe.empty();
 	
 	/**
-	 * The Report Portal ID for the current step.
+	 * The current step information including Report Portal ID and step type.
 	 */
-	private Maybe<String> stepId = Maybe.empty();
+	private Step step;
 	
 	/**
 	 * The hook suite (collection of hooks of the same type) for this scenario.
@@ -205,21 +205,21 @@ public class ScenarioContext {
 	}
 
 	/**
-	 * Sets the Report Portal ID for the current step.
+	 * Sets the current step.
 	 *
-	 * @param currentStepId the Report Portal ID for the step
+	 * @param step the step object
 	 */
-	public void setStepId(@Nonnull Maybe<String> currentStepId) {
-		stepId = currentStepId;
+	public void setStep(@Nullable Step step) {
+		this.step = step;
 	}
 
 	/**
-	 * Returns the Report Portal ID for the current step.
+	 * Returns the current step.
 	 *
-	 * @return the step ID
+	 * @return the current step
 	 */
 	@Nonnull
-	public Maybe<String> getStepId() {
-		return stepId;
+	public Optional<Step> getStep() {
+		return ofNullable(step);
 	}
 }

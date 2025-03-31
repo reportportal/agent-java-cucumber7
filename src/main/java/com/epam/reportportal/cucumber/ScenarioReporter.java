@@ -627,7 +627,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					String stepPrefix = step.getStep().getLocation().getLine() < s.getLine() ? BACKGROUND_PREFIX : null;
 					StartTestItemRQ rq = buildStartStepRequest(step, stepPrefix, step.getStep().getKeyword());
 					Maybe<String> stepId = startStep(s.getId(), rq);
-					s.setStepId(stepId);
+					s.setStep(new Step(stepId, Step.Type.NORMAL));
 					String stepText = step.getStep().getText();
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {
 						addToTree(testCase, stepText, stepId);
@@ -652,11 +652,29 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		execute(
 				testCase, (f, s) -> {
 					reportResult(result, null);
-					if (mapItemStatus(result.getStatus()) == ItemStatus.FAILED) {
-						Optional.ofNullable(result.getError()).ifPresent(error -> errorMap.put(s.getStepId(), error));
+					Optional<Step> optionalStep = s.getStep();
+					if (optionalStep.isPresent()) {
+						Step step = optionalStep.get();
+						if(step.getType() == Step.Type.NORMAL) {
+							if (mapItemStatus(result.getStatus()) == ItemStatus.FAILED) {
+								Optional.ofNullable(result.getError()).ifPresent(error -> errorMap.put(step.getId(), error));
+							}
+							finishTestItem(step.getId(), mapItemStatus(result.getStatus()), null);
+						} else {
+							LOGGER.error(
+									"BUG: Trying to finish virtual step item: {}: {}",
+									testStep.getStep().getKeyword(),
+									testStep.getStep().getText()
+							);
+						}
+						s.setStep(null);
+					} else {
+						LOGGER.error(
+								"BUG: Trying to finish unspecified step item: {}: {}",
+								testStep.getStep().getKeyword(),
+								testStep.getStep().getText()
+						);
 					}
-					finishTestItem(s.getStepId(), mapItemStatus(result.getStatus()), null);
-					s.setStepId(Maybe.empty());
 				}
 		);
 	}
@@ -1229,3 +1247,4 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 }
+
