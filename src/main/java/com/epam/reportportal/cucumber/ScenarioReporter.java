@@ -69,8 +69,6 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * Abstract Cucumber 6.x - 7.x formatter for Report Portal
- *
- * @author Vadzim Hushchanskou
  */
 public class ScenarioReporter implements ConcurrentEventListener {
 	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
