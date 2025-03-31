@@ -68,7 +68,7 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
- * Abstract Cucumber 6.x - 7.x formatter for Report Portal
+ * Abstract Cucumber 6.x - 7.x formatter for ReportPortal
  */
 public class ScenarioReporter implements ConcurrentEventListener {
 	public static final String BACKGROUND_PREFIX = "BACKGROUND: ";
@@ -131,10 +131,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * A method for creation a Start Launch request which will be sent to Report Portal. You can customize it by overriding the method.
+	 * A method for creation a Start Launch request which will be sent to ReportPortal. You can customize it by overriding the method.
 	 *
 	 * @param startTime  launch start time, which will be set into the result request
-	 * @param parameters Report Portal client parameters
+	 * @param parameters ReportPortal client parameters
 	 * @return a Start Launch request instance
 	 */
 	protected StartLaunchRQ buildStartLaunchRq(Date startTime, ListenerParameters parameters) {
@@ -178,7 +178,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * @return a Report Portal {@link Launch} class instance which is used in test item reporting
+	 * @return a ReportPortal {@link Launch} class instance which is used in test item reporting
 	 */
 	@Nonnull
 	public Launch getLaunch() {
@@ -463,7 +463,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Start before/after-hook item on Report Portal
+	 * Start before/after-hook item on ReportPortal
 	 *
 	 * @param parentId parent item id
 	 * @param rq       hook start request
@@ -598,7 +598,20 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Start Step item on Report Portal
+	 * Start virtual step item on ReportPortal
+	 *
+	 * @param scenarioId  parent scenario item id
+	 * @param startStepRq step start request
+	 * @return step item id
+	 */
+	@Nonnull
+	protected Maybe<String> startVirtualStep(@Nonnull Maybe<String> scenarioId, @Nonnull Maybe<String> virtualStepId,
+			@Nonnull StartTestItemRQ startStepRq) {
+		return getLaunch().startVirtualTestItem(scenarioId, virtualStepId, startStepRq);
+	}
+
+	/**
+	 * Start Step item on ReportPortal
 	 *
 	 * @param scenarioId  parent scenario item id
 	 * @param startStepRq step start request
@@ -626,8 +639,32 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					afterHooksSuite(testCase);
 					String stepPrefix = step.getStep().getLocation().getLine() < s.getLine() ? BACKGROUND_PREFIX : null;
 					StartTestItemRQ rq = buildStartStepRequest(step, stepPrefix, step.getStep().getKeyword());
-					Maybe<String> stepId = startStep(s.getId(), rq);
-					s.setStep(new Step(stepId, Step.Type.NORMAL));
+
+					Optional<Step> currentStepOptional = s.getStep();
+					Maybe<String> stepId = currentStepOptional.map(currentStep -> {
+						Maybe<String> sId;
+						if (currentStep.getType() == Step.Type.VIRTUAL) {
+							// For VIRTUAL step, use startVirtualTestItem
+							sId = startVirtualStep(s.getId(), currentStep.getId(), rq);
+						} else {
+							// For NORMAL step, log a warning about potential unfinished step
+							LOGGER.warn(
+									"Unexpected state: starting a step when another step of type NORMAL is active. "
+											+ "This might indicate an unfinished step. Step: {}: {}",
+									step.getStep().getKeyword(),
+									step.getStep().getText()
+							);
+							sId = startStep(s.getId(), rq);
+						}
+						s.setStep(new Step(sId, Step.Type.NORMAL));
+						return sId;
+					}).orElseGet(() -> {
+						// No existing step, proceed with normal flow
+						Maybe<String> sId = startStep(s.getId(), rq);
+						s.setStep(new Step(sId, Step.Type.NORMAL));
+						return sId;
+					});
+
 					String stepText = step.getStep().getText();
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {
 						addToTree(testCase, stepText, stepId);
@@ -655,7 +692,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					Optional<Step> optionalStep = s.getStep();
 					if (optionalStep.isPresent()) {
 						Step step = optionalStep.get();
-						if(step.getType() == Step.Type.NORMAL) {
+						if (step.getType() == Step.Type.NORMAL) {
 							if (mapItemStatus(result.getStatus()) == ItemStatus.FAILED) {
 								Optional.ofNullable(result.getError()).ifPresent(error -> errorMap.put(step.getId(), error));
 							}
@@ -809,7 +846,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Send a text log entry to Report Portal with 'INFO' level, using current datetime as timestamp
+	 * Send a text log entry to ReportPortal with 'INFO' level, using current datetime as timestamp
 	 *
 	 * @param message a text message
 	 */
@@ -818,7 +855,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Send a text log entry to Report Portal using current datetime as timestamp
+	 * Send a text log entry to ReportPortal using current datetime as timestamp
 	 *
 	 * @param message a text message
 	 * @param level   a log level, see standard Log4j / logback logging levels
@@ -850,7 +887,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Start Rule item on Report Portal
+	 * Start Rule item on ReportPortal
 	 *
 	 * @param featureId parent item id
 	 * @param ruleRq    Rule start request
@@ -1247,4 +1284,5 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 }
+
 
