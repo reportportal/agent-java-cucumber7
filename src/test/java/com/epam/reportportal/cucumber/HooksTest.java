@@ -318,9 +318,8 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
 		verify(client, timeout(10000).times(8)).log(any(List.class));
 
-		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
-		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
-		assertThat(steps.get(steps.size() - 1).getName(), equalTo("After hooks"));
+		List<String> steps = stepCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
+		assertThat(steps, containsInAnyOrder("Before hooks", "After hooks", "Given I have empty step", "Then I have another empty step"));
 
 		List<StartTestItemRQ> beforeSteps = beforeScenarioCaptor.getAllValues();
 		beforeSteps.forEach(beforeStep -> assertThat(
