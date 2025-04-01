@@ -620,8 +620,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	/**
 	 * Start virtual step item on ReportPortal
 	 *
-	 * @param scenarioId  parent scenario item id
-	 * @param startStepRq step start request
+	 * @param scenarioId    parent scenario item id
+	 * @param virtualStepId virtual step item id
+	 * @param startStepRq   step start request
 	 * @return step item id
 	 */
 	@Nonnull
