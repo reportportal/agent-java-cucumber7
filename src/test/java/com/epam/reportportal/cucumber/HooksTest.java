@@ -23,6 +23,7 @@ import com.epam.reportportal.listeners.ListenerParameters;
 import com.epam.reportportal.service.ReportPortal;
 import com.epam.reportportal.service.ReportPortalClient;
 import com.epam.reportportal.util.test.CommonUtils;
+import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
@@ -41,6 +42,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
@@ -338,30 +340,40 @@ public class HooksTest {
 				)
 		));
 
-		ArgumentCaptor<FinishTestItemRQ> finishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(eq(nestedSteps.get(0).getValue()), finishCaptor.capture());
-		verify(client).finishTestItem(eq(nestedSteps.get(3).getValue()), finishCaptor.capture());
-		verify(client).finishTestItem(eq(stepIds.get(0)), finishCaptor.capture());
-		verify(client).finishTestItem(eq(stepIds.get(1)), finishCaptor.capture());
-		verify(client).finishTestItem(eq(stepIds.get(2)), finishCaptor.capture());
-		verify(client).finishTestItem(eq(nestedSteps.get(18).getValue()), finishCaptor.capture());
-		verify(client).finishTestItem(eq(nestedSteps.get(21).getValue()), finishCaptor.capture());
-		verify(client).finishTestItem(eq(stepIds.get(3)), finishCaptor.capture());
-		verify(client).finishTestItem(eq(scenarioIds.get(0)), finishCaptor.capture());
-		verify(client).finishTestItem(eq(suiteId), finishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> beforeHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(0).getValue()), beforeHookStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(3).getValue()), beforeHookStepsFinishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> stepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(stepIds.get(0)), stepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(stepIds.get(1)), stepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(stepIds.get(2)), stepsFinishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> afterHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(18).getValue()), afterHookStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(21).getValue()), afterHookStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(stepIds.get(3)), stepsFinishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> otherFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(scenarioIds.get(0)), otherFinishCaptor.capture());
+		verify(client).finishTestItem(eq(suiteId), otherFinishCaptor.capture());
 
-		List<FinishTestItemRQ> finishSteps = finishCaptor.getAllValues();
+		assertThat(
+				beforeHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				containsInAnyOrder(ItemStatus.FAILED.name(), ItemStatus.PASSED.name())
+		);
+
+		List<FinishTestItemRQ> finishSteps = stepsFinishCaptor.getAllValues();
 		assertThat(finishSteps.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
-		assertThat(finishSteps.get(1).getStatus(), equalTo(ItemStatus.PASSED.name()));
-		assertThat(finishSteps.get(2).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(finishSteps.get(1).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
+		assertThat(finishSteps.get(2).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
+		assertThat(finishSteps.get(3).getStatus(), equalTo(ItemStatus.PASSED.name()));
 
-		// Scenario steps are skipped due to the failure in the first before hook
-		finishSteps.subList(3, 5).forEach(step -> assertThat(step.getStatus(), equalTo(ItemStatus.SKIPPED.name())));
+		assertThat(
+				afterHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				contains(ItemStatus.PASSED.name(), ItemStatus.PASSED.name())
+		);
 
-		// After scenario hooks are still executed even if before fails
-		finishSteps.subList(5, 8).forEach(step -> assertThat(step.getStatus(), equalTo(ItemStatus.PASSED.name())));
-		assertThat(finishSteps.get(8).getStatus(), equalTo(ItemStatus.FAILED.name()));
-		assertThat(finishSteps.get(9).getStatus(), nullValue());
+		List<FinishTestItemRQ> suiteFinish = otherFinishCaptor.getAllValues();
+		assertThat(suiteFinish.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(suiteFinish.get(1).getStatus(), nullValue());
 	}
 
 	@Test
