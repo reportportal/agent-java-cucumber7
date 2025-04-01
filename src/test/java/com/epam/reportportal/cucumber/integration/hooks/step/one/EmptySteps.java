@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.epam.reportportal.cucumber.integration.hooks.step;
+package com.epam.reportportal.cucumber.integration.hooks.step.one;
 
 import io.cucumber.java.AfterStep;
 import io.cucumber.java.BeforeStep;
