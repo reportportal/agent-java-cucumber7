@@ -494,8 +494,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 						// Use virtual step as parent for hook suite
 						parentId = virtualStepId;
 					} else if (hookType == HookType.AFTER_STEP) {
-						// TODO: make it use "previousStep" from the context
-						parentId = s.getStep().map(Step::getId).orElseGet(() -> {
+						parentId = s.getPreviousStep().map(Step::getId).orElseGet(() -> {
 							LOGGER.warn("Unable to locate step ID for AFTER_STEP hook. Using scenario ID as parent.");
 							return s.getId();
 						});
@@ -718,6 +717,8 @@ public class ScenarioReporter implements ConcurrentEventListener {
 								Optional.ofNullable(result.getError()).ifPresent(error -> errorMap.put(step.getId(), error));
 							}
 							finishTestItem(step.getId(), mapItemStatus(result.getStatus()), null);
+							// Store current step as previous step before clearing the current step
+							s.setPreviousStep(step);
 						} else {
 							LOGGER.error(
 									"BUG: Trying to finish virtual step item: {}: {}",
@@ -1305,6 +1306,3 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		void executeWithContext(@Nonnull FeatureContext featureContext, @Nonnull ScenarioContext scenarioContext);
 	}
 }
-
-
-

@@ -104,6 +104,7 @@ public class HooksTest {
 	private final List<String> stepIds = steps.stream().flatMap(s -> s.getValue().stream()).collect(Collectors.toList());
 	private final List<Pair<String, String>> nestedSteps = stepIds.stream()
 			.flatMap(s -> Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(2).map(ns -> Pair.of(s, ns)))
+			.flatMap(s -> Stream.of(s, Pair.of(s.getValue(), CommonUtils.namedId("nested_" + s.getValue()))))
 			.collect(Collectors.toList());
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);

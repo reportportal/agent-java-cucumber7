@@ -77,6 +77,12 @@ public class ScenarioContext {
 	private Step step;
 	
 	/**
+	 * The previous step information including Report Portal ID and step type.
+	 * Used to track the step that was just finished.
+	 */
+	private Step previousStep;
+	
+	/**
 	 * The hook suite (collection of hooks of the same type) for this scenario.
 	 */
 	private HookSuite hookSuite;
@@ -221,5 +227,24 @@ public class ScenarioContext {
 	@Nonnull
 	public Optional<Step> getStep() {
 		return ofNullable(step);
+	}
+
+	/**
+	 * Sets the previous step.
+	 *
+	 * @param previousStep the step object that was previously executed
+	 */
+	public void setPreviousStep(@Nullable Step previousStep) {
+		this.previousStep = previousStep;
+	}
+
+	/**
+	 * Returns the previous step that was executed.
+	 *
+	 * @return an Optional containing the previous step, or empty if not set
+	 */
+	@Nonnull
+	public Optional<Step> getPreviousStep() {
+		return ofNullable(previousStep);
 	}
 }
