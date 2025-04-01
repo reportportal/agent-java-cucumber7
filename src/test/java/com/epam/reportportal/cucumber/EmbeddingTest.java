@@ -93,11 +93,16 @@ public class EmbeddingTest {
 	}
 
 	private final String launchId = CommonUtils.namedId("launch_");
-	private final String suiteId = CommonUtils.namedId("suite_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
-	private final List<Pair<String, List<String>>> tests = testIds.stream()
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(2).collect(Collectors.toList());
+	private final List<Pair<String, List<String>>> steps = testIds.stream()
 			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList())))
 			.collect(Collectors.toList());
+	private final List<Pair<String, String>> nestedSteps = steps.stream()
+			.flatMap(s -> s.getValue().stream())
+			.flatMap(s -> Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(2).map(ns -> Pair.of(s, ns)))
+			.collect(Collectors.toList());
+
 
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
@@ -106,7 +111,8 @@ public class EmbeddingTest {
 
 	@BeforeEach
 	public void setup() {
-		TestUtils.mockLaunch(client, launchId, suiteId, tests);
+		TestUtils.mockLaunch(client, launchId, suiteId, steps);
+		TestUtils.mockNestedSteps(client, nestedSteps);
 		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
