@@ -136,7 +136,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(ImageTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo(EmbeddingStepdefs.IMAGE_NAME)));
 
@@ -153,7 +153,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(TextTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		List<String> types = logs.stream()
@@ -170,7 +170,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(PdfTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		assertThat(logs, hasSize(3));
@@ -188,7 +188,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(ZipTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		List<String> types = logs.stream()
@@ -204,7 +204,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(ImageNoNameTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(2)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo("image")));
@@ -222,7 +222,7 @@ public class EmbeddingTest {
 		TestUtils.runTests(ImageEmptyNameTest.class);
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, atLeastOnce()).log(logCaptor.capture());
+		verify(client, timeout(10000).times(2)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo("image")));
