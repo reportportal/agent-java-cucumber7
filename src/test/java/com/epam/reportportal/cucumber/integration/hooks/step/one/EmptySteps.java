@@ -43,7 +43,8 @@ public class EmptySteps {
 	}
 
 	@Then("I have another empty step")
-	public void i_have_another_empty_step() {
+	public void i_have_another_empty_step() throws InterruptedException {
 		LOGGER.info("Inside 'I have another empty step'");
+		Thread.sleep(200);
 	}
 }
