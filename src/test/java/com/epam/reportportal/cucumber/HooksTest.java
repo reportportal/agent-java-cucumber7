@@ -62,6 +62,13 @@ public class HooksTest {
 	}
 
 	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.hooks.step.fail" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class FailStepHooksReporterTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
 			"com.epam.reportportal.cucumber.integration.hooks.scenario.one" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class ScenarioSingleHookReporterTest extends AbstractTestNGCucumberTests {
@@ -161,7 +168,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterHookStepTwoCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client).startTestItem(same(nestedSteps.get(9).getValue()), afterHookStepTwoCaptor.capture());
 
-		verify(client, timeout(10000).times(10)).log(any(List.class));
+		verify(client, times(10)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -229,7 +236,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterStepTwoHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), afterStepTwoHooksCaptor.capture());
 
-		verify(client, timeout(10000).times(18)).log(any(List.class));
+		verify(client, times(18)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -297,6 +304,124 @@ public class HooksTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
+	public void verify_two_before_after_one_before_failed_step_reported_in_steps() {
+		TestUtils.runTests(FailStepHooksReporterTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		verify(client, times(1)).startTestItem(same(suiteId), any());
+
+		// Capture step requests to verify
+		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), stepCaptor.capture());
+
+		// Capture step hook group requests for the first step
+		ArgumentCaptor<StartTestItemRQ> nestedStepOneCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(stepIds.get(0)), nestedStepOneCaptor.capture());
+
+		// Capture step hook group requests for the second step
+		ArgumentCaptor<StartTestItemRQ> nestedStepTwoCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(stepIds.get(1)), nestedStepTwoCaptor.capture());
+
+		// Capture hook steps for first step (before)
+		ArgumentCaptor<StartTestItemRQ> beforeStepOneHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(nestedSteps.get(0).getValue()), beforeStepOneHooksCaptor.capture());
+
+		// Capture hook steps for first step (after)
+		ArgumentCaptor<StartTestItemRQ> afterStepOneHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(nestedSteps.get(3).getValue()), afterStepOneHooksCaptor.capture());
+
+		// For the second step we only care about the hook group items
+		verify(client, times(2)).startTestItem(same(nestedSteps.get(6).getValue()), any(StartTestItemRQ.class));
+		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), any(StartTestItemRQ.class));
+
+		verify(client, times(12)).log(any(List.class));
+
+		// Verify step names from the feature file
+		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
+		assertThat(mainSteps, hasSize(2));
+		assertThat(
+				mainSteps.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Given I have empty step", "Then I have another empty step")
+		);
+
+		// Verify hook group names
+		List<StartTestItemRQ> stepOneHooks = nestedStepOneCaptor.getAllValues();
+		assertThat(stepOneHooks, hasSize(2));
+		assertThat(stepOneHooks.get(0).getName(), equalTo("Before step"));
+		assertThat(stepOneHooks.get(1).getName(), equalTo("After step"));
+
+		// Verify hook step names for first step (before hooks)
+		List<StartTestItemRQ> beforeStepOneHooks = beforeStepOneHooksCaptor.getAllValues();
+		assertThat(beforeStepOneHooks, hasSize(2));
+		assertThat(
+				beforeStepOneHooks.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()), containsInAnyOrder(
+						"com.epam.reportportal.cucumber.integration.hooks.step.fail.EmptySteps.my_first_before_step_hook()",
+						"com.epam.reportportal.cucumber.integration.hooks.step.fail.EmptySteps.my_second_before_step_hook()"
+				)
+		);
+
+		// Verify after hook step names for first step
+		List<StartTestItemRQ> afterStepOneHooks = afterStepOneHooksCaptor.getAllValues();
+		assertThat(afterStepOneHooks, hasSize(2));
+		assertThat(
+				afterStepOneHooks.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()), containsInAnyOrder(
+						"com.epam.reportportal.cucumber.integration.hooks.step.fail.EmptySteps.my_first_after_step_hook()",
+						"com.epam.reportportal.cucumber.integration.hooks.step.fail.EmptySteps.my_second_after_step_hook()"
+				)
+		);
+
+		// Verify step statuses
+		ArgumentCaptor<FinishTestItemRQ> beforeHookStepsGroupFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(0).getValue()), beforeHookStepsGroupFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> beforeHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(1).getValue()), beforeHookStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(2).getValue()), beforeHookStepsFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> stepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(stepIds.get(0)), stepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(stepIds.get(1)), stepsFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> afterHookStepsGroupFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(3).getValue()), afterHookStepsGroupFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> afterHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(4).getValue()), afterHookStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(5).getValue()), afterHookStepsFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> scenarioFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(scenarioIds.get(0)), scenarioFinishCaptor.capture());
+
+		ArgumentCaptor<FinishTestItemRQ> featureFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(suiteId), featureFinishCaptor.capture());
+
+		assertThat(beforeHookStepsGroupFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));
+
+		assertThat(
+				beforeHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				containsInAnyOrder(ItemStatus.FAILED.name(), ItemStatus.PASSED.name())
+		);
+
+		assertThat(
+				stepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				contains(ItemStatus.SKIPPED.name(), ItemStatus.SKIPPED.name())
+		);
+
+		assertThat(afterHookStepsGroupFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.PASSED.name()));
+
+		assertThat(
+				afterHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				contains(ItemStatus.PASSED.name(), ItemStatus.PASSED.name())
+		);
+
+		assertThat(scenarioFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));
+		assertThat(featureFinishCaptor.getValue().getStatus(), nullValue());
+
+		// Skip testing of the second step, count as the same as the first one
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
 	public void verify_single_before_after_scenario_reported_in_steps() {
 		TestUtils.runTests(ScenarioSingleHookReporterTest.class);
 
@@ -308,7 +433,7 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(6)).log(any(List.class));
+		verify(client, times(6)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -345,7 +470,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(10)).log(any(List.class));
+		verify(client, times(10)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -390,7 +515,7 @@ public class HooksTest {
 		verify(client, times(4)).startTestItem(same(scenarioIds.get(1)), secondStepCaptor.capture());
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), any(StartTestItemRQ.class));
-		verify(client, timeout(10000).times(20)).log(any(List.class));
+		verify(client, times(20)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = firstStepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -419,7 +544,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(8)).log(any(List.class));
+		verify(client, times(8)).log(any(List.class));
 
 		List<String> steps = stepCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
 		assertThat(steps, containsInAnyOrder("Before hooks", "After hooks", "Given I have empty step", "Then I have another empty step"));
@@ -488,7 +613,7 @@ public class HooksTest {
 
 		// @BeforeAll and @AfterAll hooks does not emit any events, see: https://github.com/cucumber/cucumber-jvm/issues/2422
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, timeout(10000).times(3)).log(any(List.class));
+		verify(client, times(3)).log(any(List.class));
 	}
 
 	@Test
@@ -499,6 +624,6 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, timeout(10000).times(2)).log(any(List.class));
+		verify(client, times(2)).log(any(List.class));
 	}
 }
