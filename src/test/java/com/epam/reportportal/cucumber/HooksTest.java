@@ -168,7 +168,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterHookStepTwoCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client).startTestItem(same(nestedSteps.get(9).getValue()), afterHookStepTwoCaptor.capture());
 
-		verify(client, timeout(10000).times(10)).log(any(List.class));
+		verify(client, times(10)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -236,7 +236,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterStepTwoHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), afterStepTwoHooksCaptor.capture());
 
-		verify(client, timeout(10000).times(18)).log(any(List.class));
+		verify(client, times(18)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -334,7 +334,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(6).getValue()), any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), any(StartTestItemRQ.class));
 
-		verify(client, timeout(10000).times(12)).log(any(List.class));
+		verify(client, times(12)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -433,7 +433,7 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(6)).log(any(List.class));
+		verify(client, times(6)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -470,7 +470,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(10)).log(any(List.class));
+		verify(client, times(10)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -515,7 +515,7 @@ public class HooksTest {
 		verify(client, times(4)).startTestItem(same(scenarioIds.get(1)), secondStepCaptor.capture());
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), any(StartTestItemRQ.class));
-		verify(client, timeout(10000).times(20)).log(any(List.class));
+		verify(client, times(20)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = firstStepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -544,7 +544,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, timeout(10000).times(8)).log(any(List.class));
+		verify(client, times(8)).log(any(List.class));
 
 		List<String> steps = stepCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
 		assertThat(steps, containsInAnyOrder("Before hooks", "After hooks", "Given I have empty step", "Then I have another empty step"));
@@ -613,7 +613,7 @@ public class HooksTest {
 
 		// @BeforeAll and @AfterAll hooks does not emit any events, see: https://github.com/cucumber/cucumber-jvm/issues/2422
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, timeout(10000).times(3)).log(any(List.class));
+		verify(client, times(3)).log(any(List.class));
 	}
 
 	@Test
@@ -624,6 +624,6 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, timeout(10000).times(2)).log(any(List.class));
+		verify(client, times(2)).log(any(List.class));
 	}
 }
