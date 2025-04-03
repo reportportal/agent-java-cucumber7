@@ -576,8 +576,7 @@ public class HooksTest {
 				.collect(Collectors.toList());
 		assertThat(afterSteps, hasSize(2));
 		assertThat(
-				afterSteps,
-				containsInAnyOrder(
+				afterSteps, containsInAnyOrder(
 						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_after_hook()",
 						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_after_hook()"
 				)
