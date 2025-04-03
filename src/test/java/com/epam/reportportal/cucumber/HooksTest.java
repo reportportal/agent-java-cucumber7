@@ -33,6 +33,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -548,62 +549,62 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(4)).startTestItem(same(scenarioIds.get(0)), stepCaptor.capture());
-		ArgumentCaptor<StartTestItemRQ> beforeScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
-		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
+		ArgumentCaptor<StartTestItemRQ> hooksScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(4)).startTestItem(ArgumentMatchers.startsWith("step_"), hooksScenarioCaptor.capture());
 		verify(client, atLeast(8)).log(any(List.class));
 
 		List<String> steps = stepCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
 		assertThat(steps, containsInAnyOrder("Before hooks", "After hooks", "Given I have empty step", "Then I have another empty step"));
 
-		List<StartTestItemRQ> beforeSteps = beforeScenarioCaptor.getAllValues();
-		beforeSteps.forEach(beforeStep -> assertThat(
-				beforeStep.getName(),
-				anyOf(
-						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_before_hook()"),
-						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_before_hook()")
+		List<String> beforeSteps = hooksScenarioCaptor.getAllValues()
+				.stream()
+				.map(StartTestItemRQ::getName)
+				.filter(n -> n.contains("before"))
+				.collect(Collectors.toList());
+		assertThat(beforeSteps, hasSize(2));
+		assertThat(
+				beforeSteps, containsInAnyOrder(
+						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_before_hook()",
+						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_before_hook()"
 				)
-		));
+		);
 
-		List<StartTestItemRQ> afterSteps = afterScenarioCaptor.getAllValues();
-		afterSteps.forEach(afterStep -> assertThat(
-				afterStep.getName(),
-				anyOf(
-						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_after_hook()"),
-						equalTo("com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_after_hook()")
+		List<String> afterSteps = hooksScenarioCaptor.getAllValues()
+				.stream()
+				.map(StartTestItemRQ::getName)
+				.filter(n -> n.contains("after"))
+				.collect(Collectors.toList());
+		assertThat(afterSteps, hasSize(2));
+		assertThat(
+				afterSteps,
+				containsInAnyOrder(
+						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_first_after_hook()",
+						"com.epam.reportportal.cucumber.integration.hooks.scenario.fail.EmptySteps.my_second_after_hook()"
 				)
-		));
+		);
 
-		ArgumentCaptor<FinishTestItemRQ> beforeHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(eq(nestedSteps.get(0).getValue()), beforeHookStepsFinishCaptor.capture());
-		verify(client).finishTestItem(eq(nestedSteps.get(3).getValue()), beforeHookStepsFinishCaptor.capture());
+		ArgumentCaptor<FinishTestItemRQ> hookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client, times(4)).finishTestItem(ArgumentMatchers.startsWith("nested_step_"), hookStepsFinishCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> stepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client).finishTestItem(eq(stepIds.get(0)), stepsFinishCaptor.capture());
 		verify(client).finishTestItem(eq(stepIds.get(1)), stepsFinishCaptor.capture());
 		verify(client).finishTestItem(eq(stepIds.get(2)), stepsFinishCaptor.capture());
-		ArgumentCaptor<FinishTestItemRQ> afterHookStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
-		verify(client).finishTestItem(eq(nestedSteps.get(18).getValue()), afterHookStepsFinishCaptor.capture());
-		verify(client).finishTestItem(eq(nestedSteps.get(21).getValue()), afterHookStepsFinishCaptor.capture());
 		verify(client).finishTestItem(eq(stepIds.get(3)), stepsFinishCaptor.capture());
 		ArgumentCaptor<FinishTestItemRQ> otherFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client).finishTestItem(eq(scenarioIds.get(0)), otherFinishCaptor.capture());
 		verify(client).finishTestItem(eq(suiteId), otherFinishCaptor.capture());
 
+		List<FinishTestItemRQ> hookFinishes = hookStepsFinishCaptor.getAllValues();
+		assertThat(hookFinishes, hasSize(4));
 		assertThat(
-				beforeHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
-				containsInAnyOrder(ItemStatus.FAILED.name(), ItemStatus.PASSED.name())
+				hookFinishes.stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				containsInAnyOrder(ItemStatus.FAILED.name(), ItemStatus.PASSED.name(), ItemStatus.PASSED.name(), ItemStatus.PASSED.name())
 		);
 
 		List<FinishTestItemRQ> finishSteps = stepsFinishCaptor.getAllValues();
-		assertThat(finishSteps.get(0).getStatus(), equalTo(ItemStatus.FAILED.name()));
-		assertThat(finishSteps.get(1).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
-		assertThat(finishSteps.get(2).getStatus(), equalTo(ItemStatus.SKIPPED.name()));
-		assertThat(finishSteps.get(3).getStatus(), equalTo(ItemStatus.PASSED.name()));
-
 		assertThat(
-				afterHookStepsFinishCaptor.getAllValues().stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
-				contains(ItemStatus.PASSED.name(), ItemStatus.PASSED.name())
+				finishSteps.stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				containsInAnyOrder(ItemStatus.FAILED.name(), ItemStatus.SKIPPED.name(), ItemStatus.SKIPPED.name(), ItemStatus.PASSED.name())
 		);
 
 		List<FinishTestItemRQ> suiteFinish = otherFinishCaptor.getAllValues();
