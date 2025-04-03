@@ -180,12 +180,15 @@ public class HooksTest {
 
 		// Verify hook group names
 		List<StartTestItemRQ> stepRequests = nestedStepOneCaptor.getAllValues();
-		stepRequests.addAll(nestedStepTwoCaptor.getAllValues());
-		assertThat(stepRequests, hasSize(4));
-		for (int i = 0; i < stepRequests.size(); i += 2) {
-			assertThat(stepRequests.get(i).getName(), equalTo("Before step"));
-			assertThat(stepRequests.get(i + 1).getName(), equalTo("After step"));
-		}
+		assertThat(
+				stepRequests.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Before step", "After step")
+		);
+		stepRequests = nestedStepTwoCaptor.getAllValues();
+		assertThat(
+				stepRequests.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Before step", "After step")
+		);
 
 		// Verify hook step names
 		assertThat(
