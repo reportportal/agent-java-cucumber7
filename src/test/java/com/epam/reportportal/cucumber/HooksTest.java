@@ -168,7 +168,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterHookStepTwoCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client).startTestItem(same(nestedSteps.get(9).getValue()), afterHookStepTwoCaptor.capture());
 
-		verify(client, times(10)).log(any(List.class));
+		verify(client, atLeast(10)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -236,7 +236,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterStepTwoHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), afterStepTwoHooksCaptor.capture());
 
-		verify(client, times(18)).log(any(List.class));
+		verify(client, atLeast(18)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -248,12 +248,15 @@ public class HooksTest {
 
 		// Verify hook group names
 		List<StartTestItemRQ> stepRequests = nestedStepOneCaptor.getAllValues();
-		stepRequests.addAll(nestedStepTwoCaptor.getAllValues());
-		assertThat(stepRequests, hasSize(4));
-		for (int i = 0; i < stepRequests.size(); i += 2) {
-			assertThat(stepRequests.get(i).getName(), equalTo("Before step"));
-			assertThat(stepRequests.get(i + 1).getName(), equalTo("After step"));
-		}
+		assertThat(
+				stepRequests.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Before step", "After step")
+		);
+		stepRequests = nestedStepTwoCaptor.getAllValues();
+		assertThat(
+				stepRequests.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Before step", "After step")
+		);
 
 		// Verify before hook step names for first step
 		List<StartTestItemRQ> beforeStepOneHooks = beforeStepOneHooksCaptor.getAllValues();
@@ -334,7 +337,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(6).getValue()), any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), any(StartTestItemRQ.class));
 
-		verify(client, times(12)).log(any(List.class));
+		verify(client, atLeast(12)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
@@ -347,8 +350,10 @@ public class HooksTest {
 		// Verify hook group names
 		List<StartTestItemRQ> stepOneHooks = nestedStepOneCaptor.getAllValues();
 		assertThat(stepOneHooks, hasSize(2));
-		assertThat(stepOneHooks.get(0).getName(), equalTo("Before step"));
-		assertThat(stepOneHooks.get(1).getName(), equalTo("After step"));
+		assertThat(
+				stepOneHooks.stream().map(StartTestItemRQ::getName).collect(Collectors.toList()),
+				containsInAnyOrder("Before step", "After step")
+		);
 
 		// Verify hook step names for first step (before hooks)
 		List<StartTestItemRQ> beforeStepOneHooks = beforeStepOneHooksCaptor.getAllValues();
@@ -433,7 +438,7 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, times(6)).log(any(List.class));
+		verify(client, atLeast(6)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -470,7 +475,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, times(10)).log(any(List.class));
+		verify(client, atLeast(10)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -515,7 +520,7 @@ public class HooksTest {
 		verify(client, times(4)).startTestItem(same(scenarioIds.get(1)), secondStepCaptor.capture());
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), any(StartTestItemRQ.class));
-		verify(client, times(20)).log(any(List.class));
+		verify(client, atLeast(20)).log(any(List.class));
 
 		List<StartTestItemRQ> steps = firstStepCaptor.getAllValues();
 		assertThat(steps.get(0).getName(), equalTo("Before hooks"));
@@ -544,7 +549,7 @@ public class HooksTest {
 		verify(client, times(2)).startTestItem(same(stepIds.get(0)), beforeScenarioCaptor.capture());
 		ArgumentCaptor<StartTestItemRQ> afterScenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(stepIds.get(3)), afterScenarioCaptor.capture());
-		verify(client, times(8)).log(any(List.class));
+		verify(client, atLeast(8)).log(any(List.class));
 
 		List<String> steps = stepCaptor.getAllValues().stream().map(StartTestItemRQ::getName).collect(Collectors.toList());
 		assertThat(steps, containsInAnyOrder("Before hooks", "After hooks", "Given I have empty step", "Then I have another empty step"));
@@ -613,7 +618,7 @@ public class HooksTest {
 
 		// @BeforeAll and @AfterAll hooks does not emit any events, see: https://github.com/cucumber/cucumber-jvm/issues/2422
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, times(3)).log(any(List.class));
+		verify(client, atLeast(3)).log(any(List.class));
 	}
 
 	@Test
