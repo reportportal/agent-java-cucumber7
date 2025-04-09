@@ -28,7 +28,7 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 - **Enhanced Code References**: Implemented consistent code reference generation similar with what we have in other BDD
   agents. Code references are now generated based on the file path and Scenario name, rather than the file path and
   line number. This change helps to avoid issues when changes to the Feature file breaks history tracking for Scenarios,
-  which line number was shifted.
+  which line numbers were shifted.
 
 - **Test Case ID Support**: Added comprehensive Test Case ID handling, including support for the special `@tc_id` tag.
 
