@@ -43,3 +43,5 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 
 These changes make the ReportPortal Cucumber agent more powerful, easier to use, and better aligned with modern testing
 practices.
+
+## Breaking changes
