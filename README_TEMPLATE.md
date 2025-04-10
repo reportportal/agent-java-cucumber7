@@ -1,4 +1,5 @@
 # ReportPortal agent for Cucumber v.6 and v.7
+
 Cucumber JVM version [6.0.0; ) adapter
 
 > **DISCLAIMER**: We use Google Analytics for sending anonymous usage information such as agent's and client's names,
@@ -11,8 +12,6 @@ Cucumber JVM version [6.0.0; ) adapter
 [![Join Slack chat!](https://img.shields.io/badge/slack-join-brightgreen.svg)](https://slack.epmrpp.reportportal.io/)
 [![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
 [![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
-
-The latest version is: $LATEST_VERSION
 
 ## Breaking changes
 
@@ -28,7 +27,7 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 ### Structural Changes
 
 - **Removed "Root User Story"**: The artificial "dummy" root suite that was previously created has been eliminated,
-  making the test structure cleaner and more intuitive. This suite was introduced for ReportPortal server versions 4.x 
+  making the test structure cleaner and more intuitive. This suite was introduced for ReportPortal server versions 4.x
   compatibility and prevented to maintain backward compatibility. Now it is time to get rid of it.
 
 - **Improved Hierarchy**: Before/After hooks are now properly nested within their parent Scenarios and Steps, creating a
@@ -63,3 +62,78 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 These changes make the ReportPortal Cucumber agent more powerful, easier to use, and better aligned with modern testing
 practices.
 
+## Installation
+
+### Build system setup
+
+The agent is available in the Maven Central repository. You can add it to your project using your build system's
+dependency management features.
+
+#### Maven
+
+Add to your `pom.xml` to `<dependencies>` section:
+
+```xml
+
+<dependency>
+    <groupId>com.epam.reportportal</groupId>
+    <artifactId>agent-java-cucumber7</artifactId>
+    <version>$LATEST_VERSION</version>
+</dependency>
+```
+
+#### Gradle
+
+Add to your `build.gradle` to `dependencies` section:
+
+```groovy
+implementation 'com.epam.reportportal:agent-java-cucumber7:$LATEST_VERSION'
+```
+
+For Kotlin DSL build scripts (`build.gradle.kts`):
+
+```kotlin
+implementation("com.epam.reportportal:agent-java-cucumber7:$LATEST_VERSION")
+```
+
+### Reporter setup
+
+The agent is designed to be used with the Cucumber JVM framework. To set it up, you need to configure the Cucumber
+reporter to use the ReportPortal agent. This is typically done in the `@CucumberOptions` annotation of your test runner
+class. Here's an example of how to do this with JUnit 4 runner:
+
+```java
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
+
+@RunWith(Cucumber.class)
+@CucumberOptions(
+        plugin = {"pretty", "com.epam.reportportal.cucumber.ScenarioReporter"},
+        features = "src/test/resources/features",
+        glue = "com.example.cucumber.glue"
+)
+public class RunCucumberTest {
+}
+```
+
+For more options on how to run your cucumber tests please refer to the Cucumber documentation, but the key thing above
+is that you need to specify the `com.epam.reportportal.cucumber.ScenarioReporter` as a plugin:
+https://cucumber.io/docs/cucumber/api/#running-cucumber
+
+## Configuration
+To configure the ReportPortal agent, you need to create a `reportportal.properties` file in your project. Typically,
+this file should be placed in the `src/test/resources` directory of your project. Then you can copy your configuration
+from UI of ReportPortal at `User Profile` section:
+![Profile](screenshot.png)
+
+But parameter number is much broader than listed on the UI. You can find the full list of parameters and supported
+features, like Proxy configuration, timeout tuning, etc. in the
+[client-java](https://github.com/reportportal/client-java) repository.
+
+## Logging
+The agent uses SLF4J for logging, which is just a facade for a logging framework, so you can configure the logging
+framework of your choice (e.g., Logback, Log4j). Configuration instructions are located in the corresponding
+repositories:
+- Logback - https://github.com/reportportal/logger-java-logback
+- Log4j - https://github.com/reportportal/logger-java-log4j
