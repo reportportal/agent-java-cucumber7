@@ -1,4 +1,16 @@
 # ReportPortal agent for Cucumber v.6 and v.7
+Cucumber JVM version [6.0.0; ) adapter
+
+> **DISCLAIMER**: We use Google Analytics for sending anonymous usage information such as agent's and client's names,
+> and their versions after a successful launch start. This information might help us to improve both ReportPortal
+> backend and client sides. It is used by the ReportPortal team only and is not supposed for sharing with 3rd parties.
+
+[![Maven Central](https://img.shields.io/maven-central/v/com.epam.reportportal/agent-java-cucumber7.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.epam.reportportal/agent-java-cucumber7)
+[![CI Build](https://github.com/reportportal/agent-java-cucumber7/actions/workflows/ci.yml/badge.svg)](https://github.com/reportportal/agent-java-cucumber7/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/reportportal/agent-java-cucumber7/graph/badge.svg?token=NS72PTFF9C)](https://codecov.io/gh/reportportal/agent-java-cucumber7)
+[![Join Slack chat!](https://img.shields.io/badge/slack-join-brightgreen.svg)](https://slack.epmrpp.reportportal.io/)
+[![stackoverflow](https://img.shields.io/badge/reportportal-stackoverflow-orange.svg?style=flat)](http://stackoverflow.com/questions/tagged/reportportal)
+[![Build with Love](https://img.shields.io/badge/build%20with-❤%EF%B8%8F%E2%80%8D-lightgrey.svg)](http://reportportal.io?style=flat)
 
 The latest version is: $LATEST_VERSION
 
@@ -50,3 +62,4 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 
 These changes make the ReportPortal Cucumber agent more powerful, easier to use, and better aligned with modern testing
 practices.
+
