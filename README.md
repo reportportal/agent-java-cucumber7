@@ -17,7 +17,7 @@ Cucumber JVM version [6.0.0; ) adapter
 
 This Agent generates code references in a different way than the previous Agents, and, as a result, it also generates
 different Test Case IDs. This means that the history of your tests will be broken, and you will not be able to see the
-results reported with the previous Agent on the History views of ReportPortal UI. These changes cannot be migrated, so
+results reported with previous Agents on the History views of ReportPortal UI. These changes cannot be migrated, so
 you will need to accept this as a breaking change. All newly reported tests will be tracked as usual.
 
 ## Difference between this and previous versions
