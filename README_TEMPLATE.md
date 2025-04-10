@@ -17,8 +17,8 @@ Cucumber JVM version [6.0.0; ) adapter
 
 This Agent generates code references in a different way than the previous Agents, and, as a result, it also generates
 different Test Case IDs. This means that the history of your tests will be broken, and you will not be able to see the
-results reported with the previous Agent on the History views of ReportPortal UI. These changes cannot be migrated, so
-you will need to accept this as a breaking change. All newly reported tests will be tracked as usual.
+results reported with previous Agents on the History views of ReportPortal UI. These changes cannot be migrated, so you
+will need to accept this as a breaking change. All newly reported tests will be tracked as usual.
 
 ## Difference between this and previous versions
 
@@ -28,7 +28,7 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 
 - **Removed "Root User Story"**: The artificial "dummy" root suite that was previously created has been eliminated,
   making the test structure cleaner and more intuitive. This suite was introduced for ReportPortal server versions 4.x
-  compatibility and prevented to maintain backward compatibility. Now it is time to get rid of it.
+  compatibility and preserved to maintain backward compatibility. Now it is time to get rid of it.
 
 - **Improved Hierarchy**: Before/After hooks are now properly nested within their parent Scenarios and Steps, creating a
   more logical test structure.

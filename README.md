@@ -28,7 +28,7 @@ The new Cucumber agent for ReportPortal introduces several significant improveme
 
 - **Removed "Root User Story"**: The artificial "dummy" root suite that was previously created has been eliminated,
   making the test structure cleaner and more intuitive. This suite was introduced for ReportPortal server versions 4.x
-  compatibility and prevented to maintain backward compatibility. Now it is time to get rid of it.
+  compatibility and preserved to maintain backward compatibility. Now it is time to get rid of it.
 
 - **Improved Hierarchy**: Before/After hooks are now properly nested within their parent Scenarios and Steps, creating a
   more logical test structure.
