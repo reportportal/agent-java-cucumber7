@@ -1,7 +1,9 @@
 # Changelog
 ## [Unreleased]
-## Fixed
+### Fixed
 - Start time issue for Virtual parent Items, by @HardNorth
+### Changed
+- Client version updated on [5.3.7](https://github.com/reportportal/client-java/releases/tag/5.3.7), by @HardNorth
 
 ## [5.3.0]
 ### Added
