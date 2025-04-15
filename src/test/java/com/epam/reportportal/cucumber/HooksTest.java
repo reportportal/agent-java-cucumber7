@@ -29,7 +29,6 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,7 +36,6 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -128,7 +126,7 @@ public class HooksTest {
 			.collect(Collectors.toList());
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
-	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+	private final ExecutorService executorService = CommonUtils.testExecutor();
 	private final ReportPortal reportPortal = ReportPortal.create(client, params, executorService);
 
 	@BeforeEach
@@ -139,15 +137,11 @@ public class HooksTest {
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
-	@AfterEach
-	public void tearDown() {
-		CommonUtils.shutdownExecutorService(executorService);
-	}
-
 	@Test
 	@SuppressWarnings("unchecked")
 	public void verify_before_after_step_reported_in_steps() {
 		TestUtils.runTests(OneStepHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -214,6 +208,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_two_before_after_step_reported_in_steps() {
 		TestUtils.runTests(TwoStepHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -313,6 +308,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_two_before_after_one_before_failed_step_reported_in_steps() {
 		TestUtils.runTests(FailStepHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -433,6 +429,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_single_before_after_scenario_reported_in_steps() {
 		TestUtils.runTests(ScenarioSingleHookReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -470,6 +467,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_two_before_after_scenario_reported_in_steps() {
 		TestUtils.runTests(ScenarioTwoHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -513,6 +511,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_two_before_after_two_scenarios_reported_in_steps() {
 		TestUtils.runTests(TwoScenarioTwoHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any(StartTestItemRQ.class));
 		verify(client, times(2)).startTestItem(same(suiteId), any());
@@ -544,6 +543,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_two_before_after_one_before_failed_scenarios_reported_in_steps() {
 		TestUtils.runTests(ScenarioTwoHooksOneBeforeFailedReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -615,6 +615,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_before_after_all_reported_in_steps() {
 		TestUtils.runTests(AllHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
@@ -628,6 +629,7 @@ public class HooksTest {
 	@SuppressWarnings("unchecked")
 	public void verify_before_after_not_reported_in_steps() {
 		TestUtils.runTests(NoHooksReporterTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
