@@ -134,6 +134,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_image_embedding() {
 		TestUtils.runTests(ImageTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
@@ -151,6 +152,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_text_embedding() {
 		TestUtils.runTests(TextTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
@@ -168,6 +170,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_pfd_embedding() {
 		TestUtils.runTests(PdfTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
@@ -186,6 +189,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_archive_embedding() {
 		TestUtils.runTests(ZipTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
@@ -202,6 +206,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_image_no_name_embedding() {
 		TestUtils.runTests(ImageNoNameTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(2)).log(logCaptor.capture());
@@ -220,6 +225,7 @@ public class EmbeddingTest {
 	@Test
 	public void verify_image_empty_name_embedding() {
 		TestUtils.runTests(ImageEmptyNameTest.class);
+		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
 		verify(client, timeout(10000).times(2)).log(logCaptor.capture());

@@ -665,7 +665,8 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					Maybe<String> stepId = currentStepOptional.map(currentStep -> {
 						final Maybe<String> sId;
 						if (currentStep.getType() == Step.Type.VIRTUAL) {
-							// For VIRTUAL step, use startVirtualTestItem
+							// For VIRTUAL step override timestamp and use startVirtualTestItem
+							rq.setStartTime(currentStep.getTimestamp());
 							sId = startVirtualStep(s.getId(), currentStep.getId(), rq);
 						} else {
 							// For NORMAL step, log a warning about potential unfinished step

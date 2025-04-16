@@ -37,7 +37,6 @@ import org.mockito.ArgumentMatchers;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -128,7 +127,7 @@ public class HooksTest {
 			.collect(Collectors.toList());
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
-	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+	private final ExecutorService executorService = CommonUtils.testExecutor();
 	private final ReportPortal reportPortal = ReportPortal.create(client, params, executorService);
 
 	@BeforeEach
@@ -240,7 +239,7 @@ public class HooksTest {
 		ArgumentCaptor<StartTestItemRQ> afterStepTwoHooksCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(nestedSteps.get(9).getValue()), afterStepTwoHooksCaptor.capture());
 
-		verify(client, atLeast(18)).log(any(List.class));
+		verify(client, timeout(1000).atLeast(18)).log(any(List.class));
 
 		// Verify step names from the feature file
 		List<StartTestItemRQ> mainSteps = stepCaptor.getAllValues();
