@@ -17,8 +17,8 @@ Cucumber JVM version [6.0.0; ) adapter
 
 This Agent generates code references in a different way than the previous Agents, and, as a result, it also generates
 different Test Case IDs. This means that the history of your tests will be broken, and you will not be able to see the
-results reported with previous Agents on the History views of ReportPortal UI. These changes cannot be migrated, so
-you will need to accept this as a breaking change. All newly reported tests will be tracked as usual.
+results reported with previous Agents on the History views of ReportPortal UI. These changes cannot be migrated, so you
+will need to accept this as a breaking change. All newly reported tests will be tracked as usual.
 
 ## Difference between this and previous versions
 
@@ -78,7 +78,7 @@ Add to your `pom.xml` to `<dependencies>` section:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-cucumber7</artifactId>
-    <version>5.3.0</version>
+    <version>5.3.1</version>
 </dependency>
 ```
 
@@ -87,13 +87,13 @@ Add to your `pom.xml` to `<dependencies>` section:
 Add to your `build.gradle` to `dependencies` section:
 
 ```groovy
-implementation 'com.epam.reportportal:agent-java-cucumber7:5.3.0'
+implementation 'com.epam.reportportal:agent-java-cucumber7:5.3.1'
 ```
 
 For Kotlin DSL build scripts (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.epam.reportportal:agent-java-cucumber7:5.3.0")
+implementation("com.epam.reportportal:agent-java-cucumber7:5.3.1")
 ```
 
 ### Reporter setup
