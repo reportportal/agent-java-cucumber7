@@ -36,13 +36,6 @@ compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
 repositories {
-    maven {
-        url = uri("https://maven.pkg.github.com/reportportal/client-java")
-        credentials {
-            username = System.getenv("MVN_USERNAME")
-            password = System.getenv("MVN_TOKEN")
-        }
-    }
     mavenCentral()
 }
 

@@ -44,9 +44,6 @@ jobs:
 
       - name: Build with Gradle
         timeout-minutes: 30
-        env:
-          MVN_USERNAME: ${{ secrets.MVN_USERNAME }}
-          MVN_TOKEN: ${{ secrets.MVN_TOKEN }}
         run: ./gradlew build
 
       - name: Codecov upload
