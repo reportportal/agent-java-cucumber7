@@ -44,7 +44,6 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
 public class CodeRefTest {
-
 	@CucumberOptions(features = "src/test/resources/features/belly.feature", glue = {
 			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
