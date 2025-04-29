@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.3.2]
 ### Fixed
 - Agent crash on `classpath:` prefix usage, by @HardNorth
 
