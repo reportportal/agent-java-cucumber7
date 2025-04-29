@@ -26,7 +26,8 @@ import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
@@ -45,6 +46,13 @@ public class SimpleVerificationTest {
 			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class SimpleTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "classpath:features/belly.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class SimpleClasspathTest extends AbstractTestNGCucumberTests {
 
 	}
 
@@ -71,9 +79,10 @@ public class SimpleVerificationTest {
 		assertThat(rq.isHasStats(), equalTo(hasStats));
 	}
 
-	@Test
-	public void verify_scenario_reporter_steps_integrity() {
-		TestUtils.runTests(SimpleTest.class);
+	@ParameterizedTest
+	@ValueSource(classes = { SimpleTest.class, SimpleClasspathTest.class })
+	public void verify_scenario_reporter_steps_integrity(Class<?> testClass) {
+		TestUtils.runTests(testClass);
 
 		ArgumentCaptor<StartTestItemRQ> mainSuiteCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(1)).startTestItem(mainSuiteCaptor.capture());

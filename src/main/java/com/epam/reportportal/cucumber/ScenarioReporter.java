@@ -51,8 +51,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -293,7 +292,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		// Read the feature file to extract the parameters for the current example
 		List<String> fileLines;
 		try {
-			fileLines = Files.readAllLines(Paths.get(uri));
+			fileLines = Arrays.asList(new String(
+					com.epam.reportportal.utils.files.Utils.getFile(uri).read(),
+					Charset.defaultCharset()
+			).split("\r?\n"));
 		} catch (IOException e) {
 			LOGGER.error("Failed to read feature file: {}", uri, e);
 			return null;
