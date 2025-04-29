@@ -36,11 +36,18 @@ compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
 repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/reportportal/client-java")
+        credentials {
+            username = System.getenv("MVN_USERNAME")
+            password = System.getenv("MVN_TOKEN")
+        }
+    }
     mavenCentral()
 }
 
 dependencies {
-    api 'com.epam.reportportal:client-java:5.3.10'
+    api 'com.epam.reportportal:client-java:5.3.11'
 
     implementation "io.cucumber:cucumber-gherkin:${project.cucumber_version}"
     implementation 'org.slf4j:slf4j-api:2.0.7'
