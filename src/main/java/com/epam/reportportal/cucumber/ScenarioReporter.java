@@ -866,7 +866,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				.orElseGet(() -> ofNullable(type).map(t -> t.substring(0, t.indexOf("/"))).orElse(""));
 		ReportPortal.emitLog(
 				new ReportPortalMessage(ByteSource.wrap(data), type, attachmentName),
-				"UNKNOWN",
+				"INFO",
 				Calendar.getInstance().getTime()
 		);
 	}
