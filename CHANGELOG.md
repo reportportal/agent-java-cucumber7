@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- Embedded data attachment level changed to "INFO", by @HardNorth
 
 ## [5.3.2]
 ### Fixed
