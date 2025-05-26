@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.3.4]
 ### Changed
 - Client version updated on [5.3.12](https://github.com/reportportal/client-java/releases/tag/5.3.12), by @HardNorth
 
