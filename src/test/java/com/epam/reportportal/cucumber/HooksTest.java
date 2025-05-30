@@ -397,6 +397,9 @@ public class HooksTest {
 		verify(client).finishTestItem(eq(nestedSteps.get(4).getValue()), afterHookStepsFinishCaptor.capture());
 		verify(client).finishTestItem(eq(nestedSteps.get(5).getValue()), afterHookStepsFinishCaptor.capture());
 
+		ArgumentCaptor<FinishTestItemRQ> beforeHookStepsSecondGroupFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(6).getValue()), beforeHookStepsSecondGroupFinishCaptor.capture());
+
 		ArgumentCaptor<FinishTestItemRQ> scenarioFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
 		verify(client).finishTestItem(eq(scenarioIds.get(0)), scenarioFinishCaptor.capture());
 
@@ -425,7 +428,7 @@ public class HooksTest {
 		assertThat(scenarioFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.FAILED.name()));
 		assertThat(featureFinishCaptor.getValue().getStatus(), nullValue());
 
-		// Skip testing of the second step, count as the same as the first one
+		assertThat(beforeHookStepsSecondGroupFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 	}
 
 	@Test
