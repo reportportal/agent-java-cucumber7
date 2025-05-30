@@ -103,7 +103,6 @@ public class EmbeddingTest {
 			.flatMap(s -> Stream.generate(() -> CommonUtils.namedId("nested_step_")).limit(2).map(ns -> Pair.of(s, ns)))
 			.collect(Collectors.toList());
 
-
 	private final ListenerParameters params = TestUtils.standardParameters();
 	private final ReportPortalClient client = mock(ReportPortalClient.class);
 	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -137,7 +136,7 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
+		verify(client, timeout(10000).times(3)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo(EmbeddingStepdefs.IMAGE_NAME)));
 
@@ -155,7 +154,7 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
+		verify(client, timeout(10000).times(3)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		List<String> types = logs.stream()
@@ -173,7 +172,7 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
+		verify(client, timeout(10000).times(3)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		assertThat(logs, hasSize(3));
@@ -192,7 +191,7 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(6)).log(logCaptor.capture());
+		verify(client, timeout(10000).times(3)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
 		List<String> types = logs.stream()
@@ -209,8 +208,8 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(2)).log(logCaptor.capture());
-		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
+		verify(client, timeout(10000).times(1)).log(logCaptor.capture());
+		List<SaveLogRQ> logs = filterLogs(logCaptor, l -> true);
 
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo("image")));
 
@@ -228,8 +227,8 @@ public class EmbeddingTest {
 		CommonUtils.shutdownExecutorService(executorService); // Ensure everything is finished
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, timeout(10000).times(2)).log(logCaptor.capture());
-		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
+		verify(client, timeout(10000).times(1)).log(logCaptor.capture());
+		List<SaveLogRQ> logs = filterLogs(logCaptor, l -> true);
 
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo("image")));
 
