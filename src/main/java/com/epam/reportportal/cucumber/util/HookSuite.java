@@ -22,6 +22,7 @@ import io.cucumber.plugin.event.HookType;
 import io.reactivex.Maybe;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Represents a suite of hook operations for Cucumber test execution.
@@ -54,7 +55,7 @@ public class HookSuite {
 	 * @param type   The type of hooks in this suite
 	 * @param status The initial status of the hook suite
 	 */
-	public HookSuite(@Nonnull Maybe<String> id, @Nonnull HookType type, @Nonnull ItemStatus status) {
+	public HookSuite(@Nonnull Maybe<String> id, @Nonnull HookType type, @Nullable ItemStatus status) {
 		this.id = id;
 		this.type = type;
 		this.status = status;
@@ -75,7 +76,7 @@ public class HookSuite {
 	 *
 	 * @return The current status of the hook suite
 	 */
-	@Nonnull
+	@Nullable
 	public ItemStatus getStatus() {
 		return status;
 	}
