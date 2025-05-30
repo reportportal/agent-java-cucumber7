@@ -843,14 +843,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (message != null) {
 			sendLog(message, level);
 		}
-		Throwable error = result.getError();
-		if (error != null) {
-			sendLog(
-					getReportPortal().getParameters().isExceptionTruncate() ?
-							getStackTrace(error, new Throwable()) :
-							ExceptionUtils.getStackTrace(error), level
-			);
-		}
+		ofNullable(result.getError()).ifPresent(ReportPortal::sendStackTraceToRP);
 	}
 
 	/**
