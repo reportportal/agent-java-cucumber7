@@ -20,6 +20,7 @@ import com.epam.reportportal.cucumber.util.HookSuite;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
 import com.epam.reportportal.listeners.ListenerParameters;
+import com.epam.reportportal.listeners.LogLevel;
 import com.epam.reportportal.message.ReportPortalMessage;
 import com.epam.reportportal.service.Launch;
 import com.epam.reportportal.service.ReportPortal;
@@ -712,7 +713,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void afterStep(@Nonnull TestCase testCase, @Nonnull PickleStepTestStep testStep, @Nonnull Result result) {
 		execute(
 				testCase, (f, s) -> {
-					reportResult(result, null);
+					reportResult(result);
 					Optional<Step> optionalStep = s.getStep();
 					if (optionalStep.isPresent()) {
 						Step step = optionalStep.get();
@@ -816,10 +817,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param step     a cucumber step object
 	 * @param result   a cucumber result object
 	 */
+	@SuppressWarnings("unused")
 	protected void afterHooks(@Nonnull TestCase testCase, @Nonnull HookTestStep step, Result result) {
 		execute(
 				testCase, (f, s) -> {
-					reportResult(result, (isBefore(step) ? "Before" : "After") + " hook: " + step.getCodeLocation());
+					reportResult(result);
 					ItemStatus hookStatus = mapItemStatus(result.getStatus());
 					finishTestItem(s.getHookId(), hookStatus);
 					s.setHookId(Maybe.empty());
@@ -835,14 +837,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	/**
 	 * Report test item result and error (if present)
 	 *
-	 * @param result  - Cucumber result object
-	 * @param message - optional message to be logged in addition
+	 * @param result - Cucumber result object
 	 */
-	protected void reportResult(@Nonnull Result result, @Nullable String message) {
-		String level = mapLevel(result.getStatus());
-		if (message != null) {
-			sendLog(message, level);
-		}
+	protected void reportResult(@Nonnull Result result) {
 		ofNullable(result.getError()).ifPresent(ReportPortal::sendStackTraceToRP);
 	}
 
@@ -859,7 +856,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 				.orElseGet(() -> ofNullable(type).map(t -> t.substring(0, t.indexOf("/"))).orElse(""));
 		ReportPortal.emitLog(
 				new ReportPortalMessage(ByteSource.wrap(data), type, attachmentName),
-				"INFO",
+				LogLevel.INFO.name(),
 				Calendar.getInstance().getTime()
 		);
 	}
@@ -870,21 +867,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param message a text message
 	 */
 	protected void sendLog(@Nullable String message) {
-		sendLog(message, "INFO");
-	}
-
-	/**
-	 * Send a text log entry to ReportPortal using current datetime as timestamp
-	 *
-	 * @param message a text message
-	 * @param level   a log level, see standard Log4j / logback logging levels
-	 */
-	protected void sendLog(@Nullable final String message, @Nullable final String level) {
-		ReportPortal.emitLog(message, level, Calendar.getInstance().getTime());
-	}
-
-	private boolean isBefore(@Nonnull HookTestStep step) {
-		return HookType.BEFORE == step.getHookType();
+		ReportPortal.emitLog(message, LogLevel.INFO.name(), Calendar.getInstance().getTime());
 	}
 
 	/**
@@ -1206,21 +1189,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 			}
 			return STATUS_MAPPING.get(status);
 		}
-	}
-
-	/**
-	 * Map Cucumber statuses to RP log levels
-	 *
-	 * @param cukesStatus - Cucumber status
-	 * @return regular log level
-	 */
-	@Nonnull
-	protected String mapLevel(@Nullable Status cukesStatus) {
-		if (cukesStatus == null) {
-			return "ERROR";
-		}
-		String level = LOG_LEVEL_MAPPING.get(cukesStatus);
-		return null == level ? "ERROR" : level;
 	}
 
 	/**
