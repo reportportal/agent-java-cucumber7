@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.3.5]
 ### Removed
 - Logging of hook code reference with ERROR level on hook failure, since it pollutes the logs for Auto-Analysis, by @HardNorth
 
