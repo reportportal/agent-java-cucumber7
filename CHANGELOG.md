@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.3.6]
 ### Fixed
 - Hook suites are now correctly inherit "SKIPPED" status from child items, by @HardNorth
 
