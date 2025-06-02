@@ -4,6 +4,8 @@
 ## [5.3.6]
 ### Fixed
 - Hook suites are now correctly inherit "SKIPPED" status from child items, by @HardNorth
+### Changed
+- Client version updated on [5.3.14](https://github.com/reportportal/client-java/releases/tag/5.3.14), by @HardNorth
 
 ## [5.3.5]
 ### Removed
