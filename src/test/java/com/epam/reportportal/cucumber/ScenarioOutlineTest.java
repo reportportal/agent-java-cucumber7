@@ -75,6 +75,7 @@ public class ScenarioOutlineTest {
 	@BeforeEach
 	public void initLaunch() {
 		TestUtils.mockLaunch(client, launchId, suiteId, tests);
+		TestUtils.mockLogging(client);
 		TestScenarioReporter.RP.set(reportPortal);
 	}
 
