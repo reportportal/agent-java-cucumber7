@@ -104,7 +104,7 @@ public class ManualStepReporterTest {
 		ArgumentCaptor<StartTestItemRQ> firstStepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client).startTestItem(same(stepIds.get(0)), firstStepCaptor.capture());
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, times(5)).log(logCaptor.capture());
+		verify(client, times(6)).log(logCaptor.capture());
 		StartTestItemRQ firstStep = firstStepCaptor.getValue();
 		List<SaveLogRQ> logs = filterLogs(logCaptor, l -> true);
 

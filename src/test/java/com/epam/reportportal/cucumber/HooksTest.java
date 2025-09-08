@@ -26,8 +26,10 @@ import com.epam.reportportal.util.test.CommonUtils;
 import com.epam.ta.reportportal.ws.model.FinishExecutionRQ;
 import com.epam.ta.reportportal.ws.model.FinishTestItemRQ;
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import com.epam.ta.reportportal.ws.model.log.SaveLogRQ;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
+import okhttp3.MultipartBody;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.epam.reportportal.cucumber.integration.util.TestUtils.filterLogs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.contains;
@@ -107,6 +110,13 @@ public class HooksTest {
 			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class NoHooksReporterTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "src/test/resources/features/DummyScenario.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.hooks.skip" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class SkipStepHooksReporterTest extends AbstractTestNGCucumberTests {
 
 	}
 
@@ -634,6 +644,54 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, times(2)).log(any(List.class));
+		verify(client, times(3)).log(any(List.class));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void verify_skip_exception_in_before_step_hook_reported_correctly() {
+		TestUtils.runTests(SkipStepHooksReporterTest.class);
+
+		// Capture log entries
+		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
+		verify(client, times(3)).log(logCaptor.capture());
+
+		// Verify the first "Before" step has reported single Log entry with ERROR level and "SkipException" with "Skipping test" message
+		List<SaveLogRQ> errorLogs = filterLogs(
+				logCaptor,
+				l -> l.getLevel() != null && l.getLevel().equals("ERROR") && l.getMessage() != null && l.getMessage()
+						.contains("SkipException") && l.getMessage().contains("Skipping test")
+		);
+		assertThat(errorLogs, hasSize(1));
+		SaveLogRQ skipExceptionLog = errorLogs.get(0);
+		assertThat(skipExceptionLog.getMessage(), containsString("SkipException"));
+		assertThat(skipExceptionLog.getMessage(), containsString("Skipping test"));
+		assertThat(skipExceptionLog.getLevel(), equalTo("ERROR"));
+
+		// Verify step statuses - all main steps should be SKIPPED
+		ArgumentCaptor<FinishTestItemRQ> stepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(stepIds.get(0)), stepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(stepIds.get(1)), stepsFinishCaptor.capture());
+		List<FinishTestItemRQ> finishSteps = stepsFinishCaptor.getAllValues();
+		assertThat(
+				finishSteps.stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				contains(ItemStatus.SKIPPED.name(), ItemStatus.SKIPPED.name())
+		);
+
+		ArgumentCaptor<FinishTestItemRQ> nestedStepsFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(nestedSteps.get(0).getValue()), nestedStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(1).getValue()), nestedStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(3).getValue()), nestedStepsFinishCaptor.capture());
+		verify(client).finishTestItem(eq(nestedSteps.get(4).getValue()), nestedStepsFinishCaptor.capture());
+		List<FinishTestItemRQ> finishNestedSteps = nestedStepsFinishCaptor.getAllValues();
+		assertThat(
+				finishNestedSteps.stream().map(FinishExecutionRQ::getStatus).collect(Collectors.toList()),
+				contains(ItemStatus.SKIPPED.name(), ItemStatus.SKIPPED.name(), ItemStatus.PASSED.name(), ItemStatus.PASSED.name())
+		);
+
+		// Verify the Scenario finish event is reported as SKIPPED
+		ArgumentCaptor<FinishTestItemRQ> scenarioFinishCaptor = ArgumentCaptor.forClass(FinishTestItemRQ.class);
+		verify(client).finishTestItem(eq(scenarioIds.get(0)), scenarioFinishCaptor.capture());
+		assertThat(scenarioFinishCaptor.getValue().getStatus(), equalTo(ItemStatus.SKIPPED.name()));
 	}
 }
