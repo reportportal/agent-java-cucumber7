@@ -136,8 +136,11 @@ public class ParameterTest {
 		assertThat(param1.getValue(), equalTo(DOCSTRING_PARAM));
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, times(3)).log(logCaptor.capture());
-		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(stepIds.get(0).getValue().get(1))).stream()
+		verify(client, times(4)).log(logCaptor.capture());
+		List<String> logs = filterLogs(
+				logCaptor,
+				l -> l.getItemUuid() != null && l.getItemUuid().equals(stepIds.get(0).getValue().get(1))
+		).stream()
 				.map(SaveLogRQ::getMessage)
 				.collect(Collectors.toList());
 
@@ -161,10 +164,11 @@ public class ParameterTest {
 		assertThat(param1.getValue(), equalTo(TABLE_PARAM));
 
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, times(2)).log(logCaptor.capture());
-		List<String> logs = filterLogs(logCaptor, l -> l.getItemUuid().equals(stepIds.get(0).getValue().get(0))).stream()
-				.map(SaveLogRQ::getMessage)
-				.collect(Collectors.toList());
+		verify(client, times(3)).log(logCaptor.capture());
+		List<String> logs = filterLogs(
+				logCaptor,
+				l -> l.getItemUuid() != null && l.getItemUuid().equals(stepIds.get(0).getValue().get(0))
+		).stream().map(SaveLogRQ::getMessage).collect(Collectors.toList());
 
 		assertThat(logs, hasSize(2));
 		assertThat(logs, hasItem(equalTo(TABLE_PARAM)));

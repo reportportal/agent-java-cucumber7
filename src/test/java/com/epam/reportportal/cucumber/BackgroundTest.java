@@ -94,7 +94,7 @@ public class BackgroundTest {
 		verify(client, times(2)).startTestItem(same(testIds.get(0)), firstStepStarts.capture());
 		ArgumentCaptor<StartTestItemRQ> secondStepStarts = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(2)).startTestItem(same(testIds.get(1)), secondStepStarts.capture());
-		verify(client, times(4)).log(any(List.class));
+		verify(client, times(5)).log(any(List.class));
 
 		assertThat(
 				firstStepStarts.getAllValues()

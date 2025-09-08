@@ -644,7 +644,7 @@ public class HooksTest {
 		verify(client, times(1)).startTestItem(any());
 		verify(client, times(1)).startTestItem(same(suiteId), any());
 		verify(client, times(2)).startTestItem(same(scenarioIds.get(0)), any());
-		verify(client, times(2)).log(any(List.class));
+		verify(client, times(3)).log(any(List.class));
 	}
 
 	@Test
@@ -654,7 +654,7 @@ public class HooksTest {
 
 		// Capture log entries
 		ArgumentCaptor<List<MultipartBody.Part>> logCaptor = ArgumentCaptor.forClass(List.class);
-		verify(client, times(2)).log(logCaptor.capture());
+		verify(client, times(3)).log(logCaptor.capture());
 
 		// Verify the first "Before" step has reported single Log entry with ERROR level and "SkipException" with "Skipping test" message
 		List<SaveLogRQ> errorLogs = filterLogs(
