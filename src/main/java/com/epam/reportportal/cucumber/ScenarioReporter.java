@@ -1054,6 +1054,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 
 	protected void handleEndOfFeature() {
 		featureContextMap.values().forEach(f -> {
+			//noinspection ReactiveStreamsUnusedPublisher
+			if (f.getId().equals(Maybe.empty())) {
+				return;
+			}
 			Date featureCompletionDateTime = featureEndTime.get(f.getUri());
 			f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
 			finishTestItem(f.getId(), null, featureCompletionDateTime);
