@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Fixed
+- Issue [#13](https://github.com/reportportal/agent-java-cucumber7/issues/13): Attempt to finish not started features, by @HardNorth
 
 ## [5.3.7]
 ### Changed
