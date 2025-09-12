@@ -87,6 +87,8 @@ public class ScenarioContext {
 	 */
 	private HookSuite hookSuite;
 
+	private volatile boolean finished = false;
+
 	/**
 	 * Creates a new scenario context for a regular scenario.
 	 *
@@ -246,5 +248,21 @@ public class ScenarioContext {
 	@Nonnull
 	public Optional<Step> getPreviousStep() {
 		return ofNullable(previousStep);
+	}
+
+	/**
+	 * Sets the finished flag to true.
+	 */
+	public void finish() {
+		this.finished = true;
+	}
+
+	/**
+	 * Returns the finished flag.
+	 * 
+	 * @return the finished flag
+	 */
+	public boolean finished(){
+		return finished;
 	}
 }
