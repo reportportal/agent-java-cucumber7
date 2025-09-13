@@ -540,21 +540,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * Put scenario end time in a map to check last scenario end time per feature
 	 *
 	 * @param event Cucumber's TestCaseFinished object
+	 * @deprecated Use {@link} #handleFinishOfTestCase(TestCaseFinished)} instead
 	 */
+	@Deprecated
 	protected void afterScenario(TestCaseFinished event) {
-		TestCase testCase = event.getTestCase();
-		afterHooksSuite(testCase);
-		execute(
-				testCase, (f, s) -> {
-					URI featureUri = f.getUri();
-					if (mapItemStatus(event.getResult().getStatus()) == ItemStatus.FAILED) {
-						Optional.ofNullable(event.getResult().getError()).ifPresent(error -> errorMap.put(s.getId(), error));
-					}
-					Date endTime = finishTestItem(s.getId(), mapItemStatus(event.getResult().getStatus()), null);
-					featureEndTime.put(featureUri, endTime);
-					removeFromTree(f.getFeature(), testCase);
-				}
-		);
+		handleFinishOfTestCase(event);
 	}
 
 	/**
@@ -985,7 +975,32 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Starts a Cucumber Test Case start, also starts corresponding Feature if is not started already.
+	 * Handles a Cucumber {@link TestSourceParsed} event by materializing feature metadata into
+	 * internal context structures. For each node provided by the event:
+	 * <ul>
+	 *   <li>If the node is a {@link Feature}, a new {@link FeatureContext} is created and stored
+	 *   in {@code featureContextMap} under the feature {@link URI}.</li>
+	 *   <li>For any other node type, a warning is logged and the node is ignored.</li>
+	 * </ul>
+	 *
+	 * The populated {@code featureContextMap} is later used to resolve feature/rule/scenario
+	 * contexts during execution.
+	 *
+	 * @param parseEvent the parsed source event containing Gherkin AST nodes for feature files
+	 */
+	protected void handleSourceEvents(TestSourceParsed parseEvent) {
+		parseEvent.getNodes().forEach(n -> {
+			if (n instanceof Feature) {
+				Feature feature = (Feature) n;
+				featureContextMap.put(feature.getUri(), new FeatureContext(feature));
+			} else {
+				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
+			}
+		});
+	}
+
+	/**
+	 * Start a Cucumber Test Case as a Scenario on ReportPortal, also starts corresponding Feature if is not started already.
 	 *
 	 * @param event Cucumber's Test Case started event object
 	 */
@@ -1012,15 +1027,26 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		);
 	}
 
-	protected void handleSourceEvents(TestSourceParsed parseEvent) {
-		parseEvent.getNodes().forEach(n -> {
-			if (n instanceof Feature) {
-				Feature feature = (Feature) n;
-				featureContextMap.put(feature.getUri(), new FeatureContext(feature));
-			} else {
-				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
-			}
-		});
+	/**
+	 * Finish a Cucumber Test Case as a Scenario on ReportPortal, also finishes corresponding Feature if it's the last scenario.
+	 * Put scenario end time in a map to check last scenario end time per feature.
+	 *
+	 * @param event Cucumber's TestCaseFinished object
+	 */
+	protected void handleFinishOfTestCase(TestCaseFinished event) {
+		TestCase testCase = event.getTestCase();
+		afterHooksSuite(testCase);
+		execute(
+				testCase, (f, s) -> {
+					URI featureUri = f.getUri();
+					if (mapItemStatus(event.getResult().getStatus()) == ItemStatus.FAILED) {
+						Optional.ofNullable(event.getResult().getError()).ifPresent(error -> errorMap.put(s.getId(), error));
+					}
+					Date endTime = finishTestItem(s.getId(), mapItemStatus(event.getResult().getStatus()), null);
+					featureEndTime.put(featureUri, endTime);
+					removeFromTree(f.getFeature(), testCase);
+				}
+		);
 	}
 
 	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
@@ -1087,7 +1113,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected EventHandler<TestCaseFinished> getTestCaseFinishedHandler() {
-		return this::afterScenario;
+		return this::handleFinishOfTestCase;
 	}
 
 	protected EventHandler<TestRunFinished> getTestRunFinishedHandler() {
