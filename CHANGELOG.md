@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.3.9]
 ### Changed
 - Features now finish on the last scenario finish, not on the end of the Launch, by @HardNorth
 - Client version updated on [5.3.16](https://github.com/reportportal/client-java/releases/tag/5.3.16), by @HardNorth
