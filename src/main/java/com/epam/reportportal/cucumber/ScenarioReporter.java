@@ -536,11 +536,30 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Finish Cucumber scenario
-	 * Put scenario end time in a map to check last scenario end time per feature
+	 * Finish Cucumber scenario.
+	 * Put scenario end time in a map to check last scenario end time per feature.
 	 *
+	 * @param testCase Cucumber's TestCase object
+	 * @param status   Cucumber's status object
+	 * @param error    the error being thrown by the Test Case (if any)
+	 */
+	protected void afterScenario(@Nonnull TestCase testCase, @Nullable Status status, @Nullable Throwable error) {
+		execute(
+				testCase, (f, s) -> {
+					URI featureUri = f.getUri();
+					if (mapItemStatus(status) == ItemStatus.FAILED) {
+						Optional.ofNullable(error).ifPresent(e -> errorMap.put(s.getId(), e));
+					}
+					Date endTime = finishTestItem(s.getId(), mapItemStatus(status), null);
+					featureEndTime.put(featureUri, endTime);
+					removeFromTree(f.getFeature(), testCase);
+				}
+		);
+	}
+
+	/**
 	 * @param event Cucumber's TestCaseFinished object
-	 * @deprecated Use {@link} #handleFinishOfTestCase(TestCaseFinished)} instead
+	 * @deprecated Use {@link #handleFinishOfTestCase(TestCaseFinished)} instead.
 	 */
 	@Deprecated
 	protected void afterScenario(TestCaseFinished event) {
@@ -974,6 +993,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		getItemTree().getTestItems().put(createKey(feature.getUri()), TestItemTree.createTestItemLeaf(featureId));
 	}
 
+	protected void handleStartOfLaunch(TestRunStarted event) {
+		beforeLaunch();
+	}
+
+
 	/**
 	 * Handles a Cucumber {@link TestSourceParsed} event by materializing feature metadata into
 	 * internal context structures. For each node provided by the event:
@@ -1035,18 +1059,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	protected void handleFinishOfTestCase(TestCaseFinished event) {
 		TestCase testCase = event.getTestCase();
+		Status status = event.getResult().getStatus();
+		Throwable error = event.getResult().getError();
 		afterHooksSuite(testCase);
-		execute(
-				testCase, (f, s) -> {
-					URI featureUri = f.getUri();
-					if (mapItemStatus(event.getResult().getStatus()) == ItemStatus.FAILED) {
-						Optional.ofNullable(event.getResult().getError()).ifPresent(error -> errorMap.put(s.getId(), error));
-					}
-					Date endTime = finishTestItem(s.getId(), mapItemStatus(event.getResult().getStatus()), null);
-					featureEndTime.put(featureUri, endTime);
-					removeFromTree(f.getFeature(), testCase);
-				}
-		);
+		afterScenario(testCase, status, error);
 	}
 
 	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
@@ -1093,7 +1109,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected EventHandler<TestRunStarted> getTestRunStartedHandler() {
-		return event -> beforeLaunch();
+		return this::handleStartOfLaunch;
 	}
 
 	protected EventHandler<TestSourceParsed> getTestSourceParsedHandler() {
