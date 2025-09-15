@@ -1016,7 +1016,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		parseEvent.getNodes().forEach(n -> {
 			if (n instanceof Feature) {
 				Feature feature = (Feature) n;
-				featureContextMap.put(feature.getUri(), new FeatureContext(feature));
+				featureContextMap.computeIfAbsent(feature.getUri(), u -> new FeatureContext(feature));
 			} else {
 				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
 			}
