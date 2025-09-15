@@ -1025,10 +1025,24 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		getItemTree().getTestItems().put(createKey(feature.getUri()), TestItemTree.createTestItemLeaf(featureId));
 	}
 
+	/**
+	 * Handles the Cucumber {@link TestRunStarted} event by initializing the ReportPortal launch.
+	 * <p>
+	 * Delegates to {@link #beforeLaunch()} to ensure the launch is created and prepared.
+	 *
+	 * @param event the test run started event
+	 */
 	protected void handleStartOfLaunch(TestRunStarted event) {
 		beforeLaunch();
 	}
 
+	/**
+	 * Handles the Cucumber {@link TestRunFinished} event by finalizing the ReportPortal launch.
+	 * <p>
+	 * Delegates to {@link #afterLaunch()} to properly close the launch.
+	 *
+	 * @param event the test run finished event
+	 */
 	protected void handleFinishOfLaunch(TestRunFinished event) {
 		afterLaunch();
 	}
@@ -1059,9 +1073,13 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Start a Cucumber Test Case as a Scenario on ReportPortal, also starts corresponding Feature if is not started already.
+	 * Handles a Cucumber {@link TestCaseStarted} event by preparing and starting
+	 * corresponding Feature/Rule/Scenario items in ReportPortal.
+	 * <p>
+	 * Ensures the Feature is started (if not already), then initializes Scenario
+	 * context and starts the Scenario item.
 	 *
-	 * @param event Cucumber's Test Case started event object
+	 * @param event the test case started event
 	 */
 	protected void handleStartOfTestCase(@Nonnull TestCaseStarted event) {
 		TestCase testCase = event.getTestCase();
@@ -1087,10 +1105,13 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Finish a Cucumber Test Case as a Scenario on ReportPortal, also finishes corresponding Feature if it's the last scenario.
-	 * Put scenario end time in a map to check last scenario end time per feature.
+	 * Handles a Cucumber {@link TestCaseFinished} event by finishing the Scenario
+	 * and, if applicable, completing the Feature when all scenarios are done.
+	 * <p>
+	 * Performs hooks suite finalization, reports the Scenario result, and
+	 * triggers feature completion checks.
 	 *
-	 * @param event Cucumber's TestCaseFinished object
+	 * @param event the test case finished event
 	 */
 	protected void handleFinishOfTestCase(TestCaseFinished event) {
 		TestCase testCase = event.getTestCase();
@@ -1101,6 +1122,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		afterFeature(testCase);
 	}
 
+	/**
+	 * Handles a Cucumber {@link TestStepStarted} event.
+	 * <p>
+	 * Starts a corresponding hook or step item depending on the runtime type of the step.
+	 * Logs a warning for unknown step types.
+	 *
+	 * @param event the test step started event
+	 */
 	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
 		TestStep testStep = event.getTestStep();
 		TestCase testCase = event.getTestCase();
@@ -1114,6 +1143,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
+	/**
+	 * Handles a Cucumber {@link TestStepFinished} event.
+	 * <p>
+	 * Finalizes the corresponding hook or step item depending on the runtime type of the step.
+	 * Logs a warning for unknown step types.
+	 *
+	 * @param event the test step finished event
+	 */
 	protected void handleTestStepFinished(@Nonnull TestStepFinished event) {
 		TestStep testStep = event.getTestStep();
 		TestCase testCase = event.getTestCase();
@@ -1126,10 +1163,24 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
+	/**
+	 * Handles a Cucumber {@link EmbedEvent} by forwarding the attachment to ReportPortal.
+	 * <p>
+	 * Delegates to {@link #embedding(String, String, byte[])} to send the data.
+	 *
+	 * @param event the embed event containing name, media type and data
+	 */
 	protected void handleEmbedEvent(EmbedEvent event) {
 		embedding(event.getName(), event.getMediaType(), event.getData());
 	}
 
+	/**
+	 * Handles a Cucumber {@link WriteEvent} by sending the provided text to ReportPortal.
+	 * <p>
+	 * Delegates to {@link #sendLog(String)}.
+	 *
+	 * @param event the write event carrying the text to log
+	 */
 	protected void handleWriteEvent(WriteEvent event) {
 		sendLog(event.getText());
 	}
