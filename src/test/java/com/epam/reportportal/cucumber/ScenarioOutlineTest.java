@@ -60,6 +60,13 @@ public class ScenarioOutlineTest {
 
 	}
 
+	@CucumberOptions(features = "src/test/resources/features/BasicScenarioOutlineParameters.feature:11", glue = {
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class RunSingleTestFromExamplesTest extends AbstractTestNGCucumberTests {
+
+	}
+
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("suite_");
 	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("test_")).limit(3).collect(Collectors.toList());
@@ -119,5 +126,25 @@ public class ScenarioOutlineTest {
 						"Scenario Outline: Test with the parameter \"third\""
 				)
 		);
+	}
+
+	public static final String[] SINGLE_STEP_NAMES = new String[] { "Given It is test with parameters", "When I have parameter \"second\"",
+			"Then I emit number 12345 on level info" };
+
+	@Test
+	public void verify_single_scenario_from_outline() {
+		TestUtils.runTests(RunSingleTestFromExamplesTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(same(suiteId), testCaptor.capture());
+
+		StartTestItemRQ item = testCaptor.getValue();
+		assertThat(item.getName(), is("Scenario Outline: Test with different parameters"));
+
+		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(testIds.get(0)), stepCaptor.capture());
+		List<StartTestItemRQ> steps = stepCaptor.getAllValues();
+		IntStream.range(0, steps.size()).forEach(i -> assertThat(steps.get(i).getName(), matchesPattern(SINGLE_STEP_NAMES[i])));
 	}
 }

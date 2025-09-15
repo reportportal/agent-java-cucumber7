@@ -30,3 +30,6 @@ test-output/
 # IntelliJ Idea files
 .idea/
 *.iml
+
+# VSCode
+.vscode/
