@@ -574,6 +574,37 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
+	 * Start Cucumber Feature
+	 *
+	 * @param startFeatureRq feature start request
+	 * @return feature item id
+	 */
+	@Nonnull
+	protected Maybe<String> startFeature(@Nonnull StartTestItemRQ startFeatureRq) {
+		return getLaunch().startTestItem(startFeatureRq);
+	}
+
+	private void addToTree(Feature feature, Maybe<String> featureId) {
+		getItemTree().getTestItems().put(createKey(feature.getUri()), TestItemTree.createTestItemLeaf(featureId));
+	}
+
+	private void beforeFeature(TestCase testCase) {
+		URI uri = testCase.getUri();
+		execute(
+				uri, f -> {
+					//noinspection ReactiveStreamsUnusedPublisher
+					if (f.getId().equals(Maybe.empty())) {
+						StartTestItemRQ featureRq = buildStartFeatureRequest(f.getFeature(), uri);
+						f.setId(startFeature(featureRq));
+						if (getLaunch().getParameters().isCallbackReportingEnabled()) {
+							addToTree(f.getFeature(), f.getId());
+						}
+					}
+				}
+		);
+	}
+
+	/**
 	 * Verifies whether all scenarios for the feature are finished and
 	 * finishes the feature when appropriate.
 	 *
@@ -750,7 +781,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param testStep a cucumber step object
 	 * @param result   Step result
 	 */
-	@SuppressWarnings("unused")
 	protected void afterStep(@Nonnull TestCase testCase, @Nonnull PickleStepTestStep testStep, @Nonnull Result result) {
 		execute(
 				testCase, (f, s) -> {
@@ -944,10 +974,9 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	/**
 	 * Start Cucumber scenario
 	 *
-	 * @param feature  current feature object
 	 * @param scenario current scenario object
 	 */
-	protected void beforeScenario(@Nonnull Feature feature, @Nonnull TestCase scenario) {
+	protected void beforeScenario(@Nonnull TestCase scenario) {
 		execute(
 				scenario, (f, s) -> {
 					Optional<RuleContext> rule = s.getRule();
@@ -973,10 +1002,21 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					s.setId(startScenario(rootId, startTestItemRQ));
 					descriptionsMap.put(s.getId(), ofNullable(startTestItemRQ.getDescription()).orElse(StringUtils.EMPTY));
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {
-						addToTree(feature, scenario, s.getId());
+						addToTree(f.getFeature(), scenario, s.getId());
 					}
 				}
 		);
+	}
+
+	/**
+	 * @param feature  current feature object
+	 * @param scenario current scenario object
+	 * @deprecated Use {@link #beforeScenario(TestCase)} instead
+	 */
+	@Deprecated
+	@SuppressWarnings("unused")
+	protected void beforeScenario(@Nonnull Feature feature, @Nonnull TestCase scenario) {
+		beforeScenario(scenario);
 	}
 
 	/**
@@ -1008,21 +1048,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		startFeatureRq.setStartTime(Calendar.getInstance().getTime());
 		startFeatureRq.setType(ItemType.STORY.name());
 		return startFeatureRq;
-	}
-
-	/**
-	 * Start Cucumber Feature
-	 *
-	 * @param startFeatureRq feature start request
-	 * @return feature item id
-	 */
-	@Nonnull
-	protected Maybe<String> startFeature(@Nonnull StartTestItemRQ startFeatureRq) {
-		return getLaunch().startTestItem(startFeatureRq);
-	}
-
-	private void addToTree(Feature feature, Maybe<String> featureId) {
-		getItemTree().getTestItems().put(createKey(feature.getUri()), TestItemTree.createTestItemLeaf(featureId));
 	}
 
 	/**
@@ -1083,23 +1108,11 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	protected void handleStartOfTestCase(@Nonnull TestCaseStarted event) {
 		TestCase testCase = event.getTestCase();
-		URI uri = testCase.getUri();
-		execute(
-				uri, f -> {
-					//noinspection ReactiveStreamsUnusedPublisher
-					if (f.getId().equals(Maybe.empty())) {
-						StartTestItemRQ featureRq = buildStartFeatureRequest(f.getFeature(), uri);
-						f.setId(startFeature(featureRq));
-						if (getLaunch().getParameters().isCallbackReportingEnabled()) {
-							addToTree(f.getFeature(), f.getId());
-						}
-					}
-				}
-		);
+		beforeFeature(testCase);
 		execute(
 				testCase, (f, s) -> {
 					s.setTestCase(testCase);
-					beforeScenario(f.getFeature(), testCase);
+					beforeScenario(testCase);
 				}
 		);
 	}
