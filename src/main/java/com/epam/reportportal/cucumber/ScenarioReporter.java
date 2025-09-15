@@ -989,6 +989,21 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		return getLaunch().startTestItem(startFeatureRq);
 	}
 
+	private void removeFromTree(Feature feature) {
+		itemTree.getTestItems().remove(createKey(feature.getUri()));
+	}
+
+	protected void finishFeature(FeatureContext f) {
+		//noinspection ReactiveStreamsUnusedPublisher
+		if (f.getId().equals(Maybe.empty())) {
+			return;
+		}
+		Date featureCompletionDateTime = featureEndTime.get(f.getUri());
+		f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
+		finishTestItem(f.getId(), null, featureCompletionDateTime);
+		removeFromTree(f.getFeature());
+	}
+
 	private void addToTree(Feature feature, Maybe<String> featureId) {
 		getItemTree().getTestItems().put(createKey(feature.getUri()), TestItemTree.createTestItemLeaf(featureId));
 	}
@@ -996,7 +1011,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	protected void handleStartOfLaunch(TestRunStarted event) {
 		beforeLaunch();
 	}
-
 
 	/**
 	 * Handles a Cucumber {@link TestSourceParsed} event by materializing feature metadata into
@@ -1006,7 +1020,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 *   in {@code featureContextMap} under the feature {@link URI}.</li>
 	 *   <li>For any other node type, a warning is logged and the node is ignored.</li>
 	 * </ul>
-	 *
+	 * <p>
 	 * The populated {@code featureContextMap} is later used to resolve feature/rule/scenario
 	 * contexts during execution.
 	 *
@@ -1090,24 +1104,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
-	private void removeFromTree(Feature feature) {
-		itemTree.getTestItems().remove(createKey(feature.getUri()));
-	}
-
-	protected void handleEndOfFeature() {
-		featureContextMap.values().forEach(f -> {
-			//noinspection ReactiveStreamsUnusedPublisher
-			if (f.getId().equals(Maybe.empty())) {
-				return;
-			}
-			Date featureCompletionDateTime = featureEndTime.get(f.getUri());
-			f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
-			finishTestItem(f.getId(), null, featureCompletionDateTime);
-			removeFromTree(f.getFeature());
-		});
-		featureContextMap.clear();
-	}
-
 	protected EventHandler<TestRunStarted> getTestRunStartedHandler() {
 		return this::handleStartOfLaunch;
 	}
@@ -1133,10 +1129,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected EventHandler<TestRunFinished> getTestRunFinishedHandler() {
-		return event -> {
-			handleEndOfFeature();
-			afterLaunch();
-		};
+		return event -> afterLaunch();
 	}
 
 	protected EventHandler<EmbedEvent> getEmbedEventHandler() {
