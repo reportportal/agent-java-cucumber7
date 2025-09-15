@@ -558,6 +558,21 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		);
 	}
 
+	private void removeFromTree(Feature feature) {
+		itemTree.getTestItems().remove(createKey(feature.getUri()));
+	}
+
+	protected void finishFeature(FeatureContext f) {
+		//noinspection ReactiveStreamsUnusedPublisher
+		if (f.getId().equals(Maybe.empty())) {
+			return;
+		}
+		Date featureCompletionDateTime = featureEndTime.get(f.getUri());
+		f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
+		finishTestItem(f.getId(), null, featureCompletionDateTime);
+		removeFromTree(f.getFeature());
+	}
+
 	/**
 	 * Verifies whether all scenarios for the feature are finished and
 	 * finishes the feature when appropriate.
@@ -1004,21 +1019,6 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	@Nonnull
 	protected Maybe<String> startFeature(@Nonnull StartTestItemRQ startFeatureRq) {
 		return getLaunch().startTestItem(startFeatureRq);
-	}
-
-	private void removeFromTree(Feature feature) {
-		itemTree.getTestItems().remove(createKey(feature.getUri()));
-	}
-
-	protected void finishFeature(FeatureContext f) {
-		//noinspection ReactiveStreamsUnusedPublisher
-		if (f.getId().equals(Maybe.empty())) {
-			return;
-		}
-		Date featureCompletionDateTime = featureEndTime.get(f.getUri());
-		f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
-		finishTestItem(f.getId(), null, featureCompletionDateTime);
-		removeFromTree(f.getFeature());
 	}
 
 	private void addToTree(Feature feature, Maybe<String> featureId) {
