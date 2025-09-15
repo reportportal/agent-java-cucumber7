@@ -104,4 +104,13 @@ public class FeatureContext {
 	public void setCurrentRule(@Nonnull RuleContext rule) {
 		currentRule = rule;
 	}
+
+	/**
+	 * Checks whether all scenarios in this feature have finished execution.
+	 *
+	 * @return true if every {@link ScenarioContext} is marked as finished, false otherwise
+	 */
+	public boolean isComplete() {
+		return scenarios.values().stream().allMatch(ScenarioContext::finished);
+	}
 }

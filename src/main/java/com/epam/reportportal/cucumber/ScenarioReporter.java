@@ -536,25 +536,66 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Finish Cucumber scenario
-	 * Put scenario end time in a map to check last scenario end time per feature
+	 * Finish Cucumber scenario.
+	 * Put scenario end time in a map to check last scenario end time per feature.
 	 *
-	 * @param event Cucumber's TestCaseFinished object
+	 * @param testCase Cucumber's TestCase object
+	 * @param status   Cucumber's status object
+	 * @param error    the error being thrown by the Test Case (if any)
 	 */
-	protected void afterScenario(TestCaseFinished event) {
-		TestCase testCase = event.getTestCase();
-		afterHooksSuite(testCase);
+	protected void afterScenario(@Nonnull TestCase testCase, @Nullable Status status, @Nullable Throwable error) {
 		execute(
 				testCase, (f, s) -> {
 					URI featureUri = f.getUri();
-					if (mapItemStatus(event.getResult().getStatus()) == ItemStatus.FAILED) {
-						Optional.ofNullable(event.getResult().getError()).ifPresent(error -> errorMap.put(s.getId(), error));
+					if (mapItemStatus(status) == ItemStatus.FAILED) {
+						Optional.ofNullable(error).ifPresent(e -> errorMap.put(s.getId(), e));
 					}
-					Date endTime = finishTestItem(s.getId(), mapItemStatus(event.getResult().getStatus()), null);
+					Date endTime = finishTestItem(s.getId(), mapItemStatus(status), null);
 					featureEndTime.put(featureUri, endTime);
+					s.finish();
 					removeFromTree(f.getFeature(), testCase);
 				}
 		);
+	}
+
+	private void removeFromTree(Feature feature) {
+		itemTree.getTestItems().remove(createKey(feature.getUri()));
+	}
+
+	protected void finishFeature(FeatureContext f) {
+		//noinspection ReactiveStreamsUnusedPublisher
+		if (f.getId().equals(Maybe.empty())) {
+			return;
+		}
+		Date featureCompletionDateTime = featureEndTime.get(f.getUri());
+		f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
+		finishTestItem(f.getId(), null, featureCompletionDateTime);
+		removeFromTree(f.getFeature());
+	}
+
+	/**
+	 * Verifies whether all scenarios for the feature are finished and
+	 * finishes the feature when appropriate.
+	 *
+	 * @param testCase Cucumber's TestCase object
+	 */
+	protected void afterFeature(@Nonnull TestCase testCase) {
+		execute(
+				testCase, (f, s) -> {
+					if (f.isComplete()) {
+						finishFeature(f);
+					}
+				}
+		);
+	}
+
+	/**
+	 * @param event Cucumber's TestCaseFinished object
+	 * @deprecated Use {@link #handleFinishOfTestCase(TestCaseFinished)} instead.
+	 */
+	@Deprecated
+	protected void afterScenario(TestCaseFinished event) {
+		handleFinishOfTestCase(event);
 	}
 
 	/**
@@ -985,9 +1026,60 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	/**
-	 * Starts a Cucumber Test Case start, also starts corresponding Feature if is not started already.
+	 * Handles the Cucumber {@link TestRunStarted} event by initializing the ReportPortal launch.
+	 * <p>
+	 * Delegates to {@link #beforeLaunch()} to ensure the launch is created and prepared.
 	 *
-	 * @param event Cucumber's Test Case started event object
+	 * @param event the test run started event
+	 */
+	protected void handleStartOfLaunch(TestRunStarted event) {
+		beforeLaunch();
+	}
+
+	/**
+	 * Handles the Cucumber {@link TestRunFinished} event by finalizing the ReportPortal launch.
+	 * <p>
+	 * Delegates to {@link #afterLaunch()} to properly close the launch.
+	 *
+	 * @param event the test run finished event
+	 */
+	protected void handleFinishOfLaunch(TestRunFinished event) {
+		afterLaunch();
+	}
+
+	/**
+	 * Handles a Cucumber {@link TestSourceParsed} event by materializing feature metadata into
+	 * internal context structures. For each node provided by the event:
+	 * <ul>
+	 *   <li>If the node is a {@link Feature}, a new {@link FeatureContext} is created and stored
+	 *   in {@code featureContextMap} under the feature {@link URI}.</li>
+	 *   <li>For any other node type, a warning is logged and the node is ignored.</li>
+	 * </ul>
+	 * <p>
+	 * The populated {@code featureContextMap} is later used to resolve feature/rule/scenario
+	 * contexts during execution.
+	 *
+	 * @param parseEvent the parsed source event containing Gherkin AST nodes for feature files
+	 */
+	protected void handleSourceEvents(TestSourceParsed parseEvent) {
+		parseEvent.getNodes().forEach(n -> {
+			if (n instanceof Feature) {
+				Feature feature = (Feature) n;
+				featureContextMap.computeIfAbsent(feature.getUri(), u -> new FeatureContext(feature));
+			} else {
+				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
+			}
+		});
+	}
+
+	/**
+	 * Handles a Cucumber {@link TestCaseStarted} event by preparing and starting
+	 * corresponding Feature/Rule/Scenario items in ReportPortal.
+	 * <p>
+	 * Ensures the Feature is started (if not already), then initializes Scenario
+	 * context and starts the Scenario item.
+	 *
+	 * @param event the test case started event
 	 */
 	protected void handleStartOfTestCase(@Nonnull TestCaseStarted event) {
 		TestCase testCase = event.getTestCase();
@@ -1012,17 +1104,32 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		);
 	}
 
-	protected void handleSourceEvents(TestSourceParsed parseEvent) {
-		parseEvent.getNodes().forEach(n -> {
-			if (n instanceof Feature) {
-				Feature feature = (Feature) n;
-				featureContextMap.put(feature.getUri(), new FeatureContext(feature));
-			} else {
-				LOGGER.warn("Unknown node type: {}", n.getClass().getSimpleName());
-			}
-		});
+	/**
+	 * Handles a Cucumber {@link TestCaseFinished} event by finishing the Scenario
+	 * and, if applicable, completing the Feature when all scenarios are done.
+	 * <p>
+	 * Performs hooks suite finalization, reports the Scenario result, and
+	 * triggers feature completion checks.
+	 *
+	 * @param event the test case finished event
+	 */
+	protected void handleFinishOfTestCase(TestCaseFinished event) {
+		TestCase testCase = event.getTestCase();
+		Status status = event.getResult().getStatus();
+		Throwable error = event.getResult().getError();
+		afterHooksSuite(testCase);
+		afterScenario(testCase, status, error);
+		afterFeature(testCase);
 	}
 
+	/**
+	 * Handles a Cucumber {@link TestStepStarted} event.
+	 * <p>
+	 * Starts a corresponding hook or step item depending on the runtime type of the step.
+	 * Logs a warning for unknown step types.
+	 *
+	 * @param event the test step started event
+	 */
 	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
 		TestStep testStep = event.getTestStep();
 		TestCase testCase = event.getTestCase();
@@ -1036,6 +1143,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
+	/**
+	 * Handles a Cucumber {@link TestStepFinished} event.
+	 * <p>
+	 * Finalizes the corresponding hook or step item depending on the runtime type of the step.
+	 * Logs a warning for unknown step types.
+	 *
+	 * @param event the test step finished event
+	 */
 	protected void handleTestStepFinished(@Nonnull TestStepFinished event) {
 		TestStep testStep = event.getTestStep();
 		TestCase testCase = event.getTestCase();
@@ -1048,26 +1163,30 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
-	private void removeFromTree(Feature feature) {
-		itemTree.getTestItems().remove(createKey(feature.getUri()));
+	/**
+	 * Handles a Cucumber {@link EmbedEvent} by forwarding the attachment to ReportPortal.
+	 * <p>
+	 * Delegates to {@link #embedding(String, String, byte[])} to send the data.
+	 *
+	 * @param event the embed event containing name, media type and data
+	 */
+	protected void handleEmbedEvent(EmbedEvent event) {
+		embedding(event.getName(), event.getMediaType(), event.getData());
 	}
 
-	protected void handleEndOfFeature() {
-		featureContextMap.values().forEach(f -> {
-			//noinspection ReactiveStreamsUnusedPublisher
-			if (f.getId().equals(Maybe.empty())) {
-				return;
-			}
-			Date featureCompletionDateTime = featureEndTime.get(f.getUri());
-			f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
-			finishTestItem(f.getId(), null, featureCompletionDateTime);
-			removeFromTree(f.getFeature());
-		});
-		featureContextMap.clear();
+	/**
+	 * Handles a Cucumber {@link WriteEvent} by sending the provided text to ReportPortal.
+	 * <p>
+	 * Delegates to {@link #sendLog(String)}.
+	 *
+	 * @param event the write event carrying the text to log
+	 */
+	protected void handleWriteEvent(WriteEvent event) {
+		sendLog(event.getText());
 	}
 
 	protected EventHandler<TestRunStarted> getTestRunStartedHandler() {
-		return event -> beforeLaunch();
+		return this::handleStartOfLaunch;
 	}
 
 	protected EventHandler<TestSourceParsed> getTestSourceParsedHandler() {
@@ -1087,22 +1206,19 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected EventHandler<TestCaseFinished> getTestCaseFinishedHandler() {
-		return this::afterScenario;
+		return this::handleFinishOfTestCase;
 	}
 
 	protected EventHandler<TestRunFinished> getTestRunFinishedHandler() {
-		return event -> {
-			handleEndOfFeature();
-			afterLaunch();
-		};
+		return this::handleFinishOfLaunch;
 	}
 
 	protected EventHandler<EmbedEvent> getEmbedEventHandler() {
-		return event -> embedding(event.getName(), event.getMediaType(), event.getData());
+		return this::handleEmbedEvent;
 	}
 
 	protected EventHandler<WriteEvent> getWriteEventHandler() {
-		return event -> sendLog(event.getText());
+		return this::handleWriteEvent;
 	}
 
 	/**
