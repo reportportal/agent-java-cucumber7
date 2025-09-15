@@ -1029,6 +1029,10 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		beforeLaunch();
 	}
 
+	protected void handleFinishOfLaunch(TestRunFinished event) {
+		afterLaunch();
+	}
+
 	/**
 	 * Handles a Cucumber {@link TestSourceParsed} event by materializing feature metadata into
 	 * internal context structures. For each node provided by the event:
@@ -1122,6 +1126,14 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		}
 	}
 
+	protected void handleEmbedEvent(EmbedEvent event) {
+		embedding(event.getName(), event.getMediaType(), event.getData());
+	}
+
+	protected void handleWriteEvent(WriteEvent event) {
+		sendLog(event.getText());
+	}
+
 	protected EventHandler<TestRunStarted> getTestRunStartedHandler() {
 		return this::handleStartOfLaunch;
 	}
@@ -1147,15 +1159,15 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	}
 
 	protected EventHandler<TestRunFinished> getTestRunFinishedHandler() {
-		return event -> afterLaunch();
+		return this::handleFinishOfLaunch;
 	}
 
 	protected EventHandler<EmbedEvent> getEmbedEventHandler() {
-		return event -> embedding(event.getName(), event.getMediaType(), event.getData());
+		return this::handleEmbedEvent;
 	}
 
 	protected EventHandler<WriteEvent> getWriteEventHandler() {
-		return event -> sendLog(event.getText());
+		return this::handleWriteEvent;
 	}
 
 	/**
