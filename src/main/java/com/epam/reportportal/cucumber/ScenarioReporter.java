@@ -552,7 +552,24 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					}
 					Date endTime = finishTestItem(s.getId(), mapItemStatus(status), null);
 					featureEndTime.put(featureUri, endTime);
+					s.finish();
 					removeFromTree(f.getFeature(), testCase);
+				}
+		);
+	}
+
+	/**
+	 * Verifies whether all scenarios for the feature are finished and
+	 * finishes the feature when appropriate.
+	 *
+	 * @param testCase Cucumber's TestCase object
+	 */
+	protected void afterFeature(@Nonnull TestCase testCase) {
+		execute(
+				testCase, (f, s) -> {
+					if (f.isComplete()) {
+						finishFeature(f);
+					}
 				}
 		);
 	}
@@ -1077,6 +1094,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		Throwable error = event.getResult().getError();
 		afterHooksSuite(testCase);
 		afterScenario(testCase, status, error);
+		afterFeature(testCase);
 	}
 
 	protected void handleTestStepStarted(@Nonnull TestStepStarted event) {
