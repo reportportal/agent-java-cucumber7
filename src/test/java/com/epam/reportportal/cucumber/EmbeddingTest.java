@@ -145,8 +145,7 @@ public class EmbeddingTest {
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
 		assertThat(types, hasSize(3));
-		long imageJpegCount = types.stream().filter("image/jpeg"::equals).count();
-		assertThat(imageJpegCount, equalTo(3L));
+		assertThat(types, containsInAnyOrder("image/jpeg", "image/png", "image/jpeg"));
 	}
 
 	@Test
@@ -164,8 +163,7 @@ public class EmbeddingTest {
 				.collect(Collectors.toList());
 
 		assertThat(types, hasSize(3));
-		long textPlainCount = types.stream().filter("text/plain"::equals).count();
-		assertThat(textPlainCount, equalTo(3L));
+		assertThat(types, containsInAnyOrder("text/plain", "image/png", "text/plain"));
 	}
 
 	@Test
@@ -184,8 +182,7 @@ public class EmbeddingTest {
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
 		assertThat(types, hasSize(3));
-		long pdfCount = types.stream().filter("application/pdf"::equals).count();
-		assertThat(pdfCount, equalTo(3L));
+		assertThat(types, containsInAnyOrder("application/pdf", "image/png", "application/pdf"));
 	}
 
 	@Test
@@ -202,8 +199,7 @@ public class EmbeddingTest {
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
 		assertThat(types, hasSize(3));
-		long zipCount = types.stream().filter("application/zip"::equals).count();
-		assertThat(zipCount, equalTo(3L));
+		assertThat(types, containsInAnyOrder("application/zip", "image/png", "application/zip"));
 	}
 
 	@Test
