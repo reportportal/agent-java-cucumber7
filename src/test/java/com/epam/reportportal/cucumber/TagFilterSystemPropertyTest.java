@@ -44,69 +44,71 @@ import static org.mockito.Mockito.*;
 public class TagFilterSystemPropertyTest {
 	private static final String TAGS_PROPERTY = "cucumber.filter.tags";
 
-    @CucumberOptions(features = "src/test/resources/features/tag_filter", glue = {
-            "com.epam.reportportal.cucumber.integration.feature" }, plugin = {
-            "com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
-    public static class TagFilterRunnerTest extends AbstractTestNGCucumberTests {
-    }
+	@CucumberOptions(features = "src/test/resources/features/tag_filter", glue = {
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class TagFilterRunnerTest extends AbstractTestNGCucumberTests {
+	}
 
-    private final String launchId = CommonUtils.namedId("launch_");
-    private final String suiteId = CommonUtils.namedId("feature_");
-    private final String testId = CommonUtils.namedId("scenario_");
-    private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
+	private final String launchId = CommonUtils.namedId("launch_");
+	private final String suiteId = CommonUtils.namedId("feature_");
+	private final String testId = CommonUtils.namedId("scenario_");
+	private final List<String> stepIds = Stream.generate(() -> CommonUtils.namedId("step_")).limit(2).collect(Collectors.toList());
 
-    private final ListenerParameters params = TestUtils.standardParameters();
-    private final ReportPortalClient client = mock(ReportPortalClient.class);
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private final ReportPortal reportPortal = ReportPortal.create(client, params, executorService);
+	private final ListenerParameters params = TestUtils.standardParameters();
+	private final ReportPortalClient client = mock(ReportPortalClient.class);
+	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+	private final ReportPortal reportPortal = ReportPortal.create(client, params, executorService);
 
-    @BeforeEach
-    public void setup() {
-        TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
-        TestUtils.mockLogging(client);
-        TestScenarioReporter.RP.set(reportPortal);
-    }
+	@BeforeEach
+	public void setup() {
+		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
+		TestUtils.mockLogging(client);
+		TestScenarioReporter.RP.set(reportPortal);
+	}
 
-    @AfterEach
-    public void tearDown() {
-        System.clearProperty(TAGS_PROPERTY);
-        CommonUtils.shutdownExecutorService(executorService);
-    }
+	@AfterEach
+	public void tearDown() {
+		System.clearProperty(TAGS_PROPERTY);
+		CommonUtils.shutdownExecutorService(executorService);
+	}
 
-    private void verifyOnlyNoTagsScenarioReported() {
-        ArgumentCaptor<StartTestItemRQ> featureCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-        verify(client, times(1)).startTestItem(featureCaptor.capture());
-        StartTestItemRQ featureRq = featureCaptor.getValue();
-        assertThat(featureRq.getDescription(), allOf(
-                notNullValue(),
-                containsString("file:///"),
-                endsWith("/agent-java-cucumber7/src/test/resources/features/tag_filter/TaggedDummyScenario.feature")
-        ));
+	private void verifyOnlyNoTagsScenarioReported() {
+		ArgumentCaptor<StartTestItemRQ> featureCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(featureCaptor.capture());
+		StartTestItemRQ featureRq = featureCaptor.getValue();
+		assertThat(
+				featureRq.getDescription(), allOf(
+						notNullValue(),
+						containsString("file:///"),
+						endsWith("/agent-java-cucumber7/src/test/resources/features/tag_filter/TaggedDummyScenario.feature")
+				)
+		);
 
-        ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-        verify(client, times(1)).startTestItem(same(suiteId), scenarioCaptor.capture());
-        StartTestItemRQ scenarioRq = scenarioCaptor.getValue();
-        assertThat(scenarioRq.getType(), equalTo("STEP"));
-        assertThat(scenarioRq.getName(), allOf(notNullValue(), containsString("Scenario:")));
+		ArgumentCaptor<StartTestItemRQ> scenarioCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(1)).startTestItem(same(suiteId), scenarioCaptor.capture());
+		StartTestItemRQ scenarioRq = scenarioCaptor.getValue();
+		assertThat(scenarioRq.getType(), equalTo("STEP"));
+		assertThat(scenarioRq.getName(), allOf(notNullValue(), containsString("Scenario:")));
 
-        ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
-        verify(client, times(2)).startTestItem(same(testId), stepCaptor.capture());
-        stepCaptor.getAllValues().forEach(rq -> assertThat(rq.getType(), equalTo("STEP")));
-    }
+		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(2)).startTestItem(same(testId), stepCaptor.capture());
+		stepCaptor.getAllValues().forEach(rq -> assertThat(rq.getType(), equalTo("STEP")));
+	}
 
-    @Test
-    public void runs_only_no_tag_scenario_when_filter_is_smoke() {
-        System.setProperty(TAGS_PROPERTY, "@smoke");
-        TestUtils.runTests(TagFilterRunnerTest.class);
-        verifyOnlyNoTagsScenarioReported();
-    }
+	@Test
+	public void runs_only_no_tag_scenario_when_filter_is_smoke() {
+		System.setProperty(TAGS_PROPERTY, "@smoke");
+		TestUtils.runTests(TagFilterRunnerTest.class);
+		verifyOnlyNoTagsScenarioReported();
+	}
 
-    @Test
-    public void runs_only_no_tag_scenario_when_filter_is_scenario_tag() {
-        System.setProperty(TAGS_PROPERTY, "@scenario_tag");
-        TestUtils.runTests(TagFilterRunnerTest.class);
-        verifyOnlyNoTagsScenarioReported();
-    }
+	@Test
+	public void runs_only_no_tag_scenario_when_filter_is_scenario_tag() {
+		System.setProperty(TAGS_PROPERTY, "@scenario_tag");
+		TestUtils.runTests(TagFilterRunnerTest.class);
+		verifyOnlyNoTagsScenarioReported();
+	}
 }
 
 

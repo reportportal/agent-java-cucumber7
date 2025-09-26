@@ -20,7 +20,6 @@ import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.utils.StatusEvaluation;
 import io.cucumber.plugin.event.HookType;
 import io.reactivex.Maybe;
-
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 

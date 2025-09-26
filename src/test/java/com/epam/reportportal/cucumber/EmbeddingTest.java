@@ -140,13 +140,13 @@ public class EmbeddingTest {
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 		logs.forEach(l -> assertThat(l.getMessage(), equalTo(EmbeddingStepdefs.IMAGE_NAME)));
 
-        List<String> types = logs.stream()
+		List<String> types = logs.stream()
 				.flatMap(l -> getLogFiles(l.getFile().getName(), logCaptor).stream())
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
-        assertThat(types, hasSize(3));
-        long imageJpegCount = types.stream().filter("image/jpeg"::equals).count();
-        assertThat(imageJpegCount, equalTo(3L));
+		assertThat(types, hasSize(3));
+		long imageJpegCount = types.stream().filter("image/jpeg"::equals).count();
+		assertThat(imageJpegCount, equalTo(3L));
 	}
 
 	@Test
@@ -158,14 +158,14 @@ public class EmbeddingTest {
 		verify(client, timeout(10000).times(4)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
-        List<String> types = logs.stream()
+		List<String> types = logs.stream()
 				.flatMap(l -> getLogFiles(l.getFile().getName(), logCaptor).stream())
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
 
-        assertThat(types, hasSize(3));
-        long textPlainCount = types.stream().filter("text/plain"::equals).count();
-        assertThat(textPlainCount, equalTo(3L));
+		assertThat(types, hasSize(3));
+		long textPlainCount = types.stream().filter("text/plain"::equals).count();
+		assertThat(textPlainCount, equalTo(3L));
 	}
 
 	@Test
@@ -179,13 +179,13 @@ public class EmbeddingTest {
 
 		assertThat(logs, hasSize(3));
 
-        List<String> types = logs.stream()
+		List<String> types = logs.stream()
 				.flatMap(l -> getLogFiles(l.getFile().getName(), logCaptor).stream())
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
-        assertThat(types, hasSize(3));
-        long pdfCount = types.stream().filter("application/pdf"::equals).count();
-        assertThat(pdfCount, equalTo(3L));
+		assertThat(types, hasSize(3));
+		long pdfCount = types.stream().filter("application/pdf"::equals).count();
+		assertThat(pdfCount, equalTo(3L));
 	}
 
 	@Test
@@ -197,13 +197,13 @@ public class EmbeddingTest {
 		verify(client, timeout(10000).times(4)).log(logCaptor.capture());
 		List<SaveLogRQ> logs = getLogsWithFiles(logCaptor);
 
-        List<String> types = logs.stream()
+		List<String> types = logs.stream()
 				.flatMap(l -> getLogFiles(l.getFile().getName(), logCaptor).stream())
 				.flatMap(f -> ofNullable(f.body().contentType()).map(MediaType::toString).stream())
 				.collect(Collectors.toList());
-        assertThat(types, hasSize(3));
-        long zipCount = types.stream().filter("application/zip"::equals).count();
-        assertThat(zipCount, equalTo(3L));
+		assertThat(types, hasSize(3));
+		long zipCount = types.stream().filter("application/zip"::equals).count();
+		assertThat(zipCount, equalTo(3L));
 	}
 
 	@Test

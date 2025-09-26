@@ -19,8 +19,8 @@ package com.epam.reportportal.cucumber;
 import io.cucumber.core.gherkin.Feature;
 import io.cucumber.plugin.event.Node;
 import io.reactivex.Maybe;
-
 import jakarta.annotation.Nonnull;
+
 import java.net.URI;
 import java.util.*;
 

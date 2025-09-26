@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.Collections;
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -116,9 +115,9 @@ public class BackgroundTest {
 		verify(client).finishTestItem(same(stepIds.get(2)), stepFinishes.capture());
 		verify(client).finishTestItem(same(stepIds.get(3)), stepFinishes.capture());
 
-        List<? extends Comparable<?>> endDates = stepFinishes.getAllValues()
+		List<? extends Comparable<?>> endDates = stepFinishes.getAllValues()
 				.stream()
-                .map(FinishExecutionRQ::getEndTime)
+				.map(FinishExecutionRQ::getEndTime)
 				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 		assertThat(endDates, hasSize(4));
@@ -135,7 +134,7 @@ public class BackgroundTest {
 		verify(client).finishTestItem(same(testIds.get(0)), testFinishes.capture());
 		verify(client).finishTestItem(same(testIds.get(1)), testFinishes.capture());
 
-        endDates = testFinishes.getAllValues()
+		endDates = testFinishes.getAllValues()
 				.stream()
 				.map(FinishExecutionRQ::getEndTime)
 				.filter(Objects::nonNull)
