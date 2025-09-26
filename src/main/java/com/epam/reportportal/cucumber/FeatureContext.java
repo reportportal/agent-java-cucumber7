@@ -20,7 +20,7 @@ import io.cucumber.core.gherkin.Feature;
 import io.cucumber.plugin.event.Node;
 import io.reactivex.Maybe;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.net.URI;
 import java.util.*;
 

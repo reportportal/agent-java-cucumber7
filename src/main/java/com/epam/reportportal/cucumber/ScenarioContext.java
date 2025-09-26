@@ -21,8 +21,8 @@ import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.TestCase;
 import io.reactivex.Maybe;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;

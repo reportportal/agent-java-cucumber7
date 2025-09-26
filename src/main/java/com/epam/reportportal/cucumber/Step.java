@@ -18,9 +18,8 @@ package com.epam.reportportal.cucumber;
 
 import io.reactivex.Maybe;
 
-import javax.annotation.Nonnull;
-import java.util.Calendar;
-import java.util.Date;
+import jakarta.annotation.Nonnull;
+import java.time.Instant;
 
 /**
  * Represents a step in a Cucumber scenario execution with its Report Portal ID and type.
@@ -56,7 +55,7 @@ public class Step {
     /**
      * The timestamp when this step was created.
      */
-    private final Date timestamp;
+    private final Instant timestamp;
 
     /**
      * Creates a new step with the specified ID and type.
@@ -67,7 +66,7 @@ public class Step {
     public Step(@Nonnull Maybe<String> id, @Nonnull Type type) {
         this.id = id;
         this.type = type;
-        this.timestamp = Calendar.getInstance().getTime();
+        this.timestamp = Instant.now();
     }
 
     /**
@@ -96,7 +95,7 @@ public class Step {
      * @return the creation timestamp
      */
     @Nonnull
-    public Date getTimestamp() {
+    public Instant getTimestamp() {
         return timestamp;
     }
 }

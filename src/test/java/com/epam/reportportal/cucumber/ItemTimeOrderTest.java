@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -79,18 +79,23 @@ public class ItemTimeOrderTest {
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());
 
-		Date startTime = launchCaptor.getValue().getStartTime();
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        Comparable startTime = (Comparable) launchCaptor.getValue().getStartTime();
 		StartTestItemRQ item = featureCaptor.getValue();
-		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
-		startTime = item.getStartTime();
+        assertThat(item.getStartTime(), notNullValue());
+        // compare using raw Comparable to avoid generics mismatch between Date/Instant
+        assertThat(((Comparable) item.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+        startTime = (Comparable) item.getStartTime();
 
 		item = scenarioCaptor.getValue();
-		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
-		startTime = item.getStartTime();
+        assertThat(item.getStartTime(), notNullValue());
+        assertThat(((Comparable) item.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+        startTime = (Comparable) item.getStartTime();
 
-		List<StartTestItemRQ> items = stepCaptor.getAllValues();
-		for (StartTestItemRQ i : items) {
-			assertThat(i.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
-		}
+        List<StartTestItemRQ> items = stepCaptor.getAllValues();
+        for (StartTestItemRQ i : items) {
+            assertThat(i.getStartTime(), notNullValue());
+            assertThat(((Comparable) i.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+        }
 	}
 }
