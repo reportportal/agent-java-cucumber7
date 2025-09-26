@@ -17,86 +17,85 @@
 package com.epam.reportportal.cucumber;
 
 import io.reactivex.Maybe;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * Represents a step in a Cucumber scenario execution with its Report Portal ID and type.
  */
 public class Step {
 
-    /**
-     * Enumeration of possible step types.
-     */
-    public enum Type {
-        /**
-         * Standard step type for steps that are created immediately with complete information.
-         */
-        NORMAL,
-        
-        /**
-         * Step type for steps that will have their data filled later due to reporting order issues.
-         * Used when step hooks are placed inside a step but executed before we have information about the step itself.
-         */
-        VIRTUAL
-    }
+	/**
+	 * Enumeration of possible step types.
+	 */
+	public enum Type {
+		/**
+		 * Standard step type for steps that are created immediately with complete information.
+		 */
+		NORMAL,
 
-    /**
-     * The Report Portal ID for this step.
-     */
-    private final Maybe<String> id;
+		/**
+		 * Step type for steps that will have their data filled later due to reporting order issues.
+		 * Used when step hooks are placed inside a step but executed before we have information about the step itself.
+		 */
+		VIRTUAL
+	}
 
-    /**
-     * The type of this step.
-     */
-    private final Type type;
+	/**
+	 * The Report Portal ID for this step.
+	 */
+	private final Maybe<String> id;
 
-    /**
-     * The timestamp when this step was created.
-     */
-    private final Date timestamp;
+	/**
+	 * The type of this step.
+	 */
+	private final Type type;
 
-    /**
-     * Creates a new step with the specified ID and type.
-     *
-     * @param id   the Report Portal ID
-     * @param type the step type
-     */
-    public Step(@Nonnull Maybe<String> id, @Nonnull Type type) {
-        this.id = id;
-        this.type = type;
-        this.timestamp = Calendar.getInstance().getTime();
-    }
+	/**
+	 * The timestamp when this step was created.
+	 */
+	private final Instant timestamp;
 
-    /**
-     * Returns the Report Portal ID for this step.
-     *
-     * @return the Report Portal ID
-     */
-    @Nonnull
-    public Maybe<String> getId() {
-        return id;
-    }
+	/**
+	 * Creates a new step with the specified ID and type.
+	 *
+	 * @param id   the Report Portal ID
+	 * @param type the step type
+	 */
+	public Step(@Nonnull Maybe<String> id, @Nonnull Type type) {
+		this.id = id;
+		this.type = type;
+		this.timestamp = Instant.now();
+	}
 
-    /**
-     * Returns the type of this step.
-     *
-     * @return the step type
-     */
-    @Nonnull
-    public Type getType() {
-        return type;
-    }
+	/**
+	 * Returns the Report Portal ID for this step.
+	 *
+	 * @return the Report Portal ID
+	 */
+	@Nonnull
+	public Maybe<String> getId() {
+		return id;
+	}
 
-    /**
-     * Returns the timestamp when this step was created.
-     *
-     * @return the creation timestamp
-     */
-    @Nonnull
-    public Date getTimestamp() {
-        return timestamp;
-    }
+	/**
+	 * Returns the type of this step.
+	 *
+	 * @return the step type
+	 */
+	@Nonnull
+	public Type getType() {
+		return type;
+	}
+
+	/**
+	 * Returns the timestamp when this step was created.
+	 *
+	 * @return the creation timestamp
+	 */
+	@Nonnull
+	public Instant getTimestamp() {
+		return timestamp;
+	}
 }

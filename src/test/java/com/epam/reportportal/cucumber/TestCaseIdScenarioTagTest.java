@@ -90,9 +90,7 @@ public class TestCaseIdScenarioTagTest {
 		assertThat(rq.getTestCaseId(), equalTo("JIRA-1234"));
 
 		// Verify that there is no attribute with name "tc_id" in the request
-		Set<String> attributeKeys = rq.getAttributes().stream()
-				.map(ItemAttributesRQ::getKey)
-				.collect(Collectors.toSet());
+		Set<String> attributeKeys = rq.getAttributes().stream().map(ItemAttributesRQ::getKey).collect(Collectors.toSet());
 		assertThat(attributeKeys, not(hasItem("tc_id")));
 	}
 }

@@ -20,9 +20,9 @@ import com.epam.reportportal.cucumber.util.HookSuite;
 import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.TestCase;
 import io.reactivex.Maybe;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
@@ -40,17 +40,17 @@ public class ScenarioContext {
 	 * The line number of the scenario or scenario outline in the feature file.
 	 */
 	private final int line;
-	
+
 	/**
 	 * The parent rule context, if this scenario is defined within a rule.
 	 */
 	private final RuleContext rule;
-	
+
 	/**
 	 * The Cucumber scenario node for regular scenarios.
 	 */
 	private final Node.Scenario scenario;
-	
+
 	/**
 	 * The Cucumber scenario outline node for scenario outlines.
 	 */
@@ -60,28 +60,28 @@ public class ScenarioContext {
 	 * The Cucumber test case associated with this scenario context.
 	 */
 	private TestCase testCase;
-	
+
 	/**
 	 * The Report Portal ID for this scenario.
 	 */
 	private Maybe<String> id = Maybe.empty();
-	
+
 	/**
 	 * The Report Portal ID for the current hook.
 	 */
 	private Maybe<String> hookId = Maybe.empty();
-	
+
 	/**
 	 * The current step information including Report Portal ID and step type.
 	 */
 	private Step step;
-	
+
 	/**
 	 * The previous step information including Report Portal ID and step type.
 	 * Used to track the step that was just finished.
 	 */
 	private Step previousStep;
-	
+
 	/**
 	 * The hook suite (collection of hooks of the same type) for this scenario.
 	 */
@@ -92,7 +92,7 @@ public class ScenarioContext {
 	/**
 	 * Creates a new scenario context for a regular scenario.
 	 *
-	 * @param ruleNode    the parent rule context, may be null
+	 * @param ruleNode     the parent rule context, may be null
 	 * @param scenarioNode the Cucumber scenario node
 	 */
 	public ScenarioContext(@Nullable RuleContext ruleNode, @Nonnull Node.Scenario scenarioNode) {
@@ -105,7 +105,7 @@ public class ScenarioContext {
 	/**
 	 * Creates a new scenario context for a scenario outline.
 	 *
-	 * @param ruleNode           the parent rule context, may be null
+	 * @param ruleNode            the parent rule context, may be null
 	 * @param scenarioOutlineNode the Cucumber scenario outline node
 	 */
 	public ScenarioContext(@Nullable RuleContext ruleNode, @Nonnull Node.ScenarioOutline scenarioOutlineNode) {
@@ -259,10 +259,10 @@ public class ScenarioContext {
 
 	/**
 	 * Returns the finished flag.
-	 * 
+	 *
 	 * @return the finished flag
 	 */
-	public boolean finished(){
+	public boolean finished() {
 		return finished;
 	}
 }
