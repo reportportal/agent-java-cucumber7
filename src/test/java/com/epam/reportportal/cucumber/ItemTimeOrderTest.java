@@ -37,8 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
@@ -63,6 +62,7 @@ public class ItemTimeOrderTest {
 	@BeforeEach
 	public void initLaunch() {
 		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
+		TestUtils.mockLogging(client);
 		TestScenarioReporterWithPause.RP.set(reportPortal);
 	}
 
@@ -82,20 +82,16 @@ public class ItemTimeOrderTest {
 
 		Comparable startTime = launchCaptor.getValue().getStartTime();
 		StartTestItemRQ item = featureCaptor.getValue();
-		assertThat(item.getStartTime(), notNullValue());
-		// compare using raw Comparable to avoid generics mismatch between Date/Instant
-		assertThat(((Comparable) item.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
 		startTime = item.getStartTime();
 
 		item = scenarioCaptor.getValue();
-		assertThat(item.getStartTime(), notNullValue());
-		assertThat(((Comparable) item.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
 		startTime = item.getStartTime();
 
 		List<StartTestItemRQ> items = stepCaptor.getAllValues();
 		for (StartTestItemRQ i : items) {
-			assertThat(i.getStartTime(), notNullValue());
-			assertThat(((Comparable) i.getStartTime()).compareTo(startTime), greaterThanOrEqualTo(0));
+			assertThat(i.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
 		}
 	}
 }
