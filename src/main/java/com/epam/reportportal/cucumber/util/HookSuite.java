@@ -20,9 +20,8 @@ import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.utils.StatusEvaluation;
 import io.cucumber.plugin.event.HookType;
 import io.reactivex.Maybe;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 /**
  * Represents a suite of hook operations for Cucumber test execution.

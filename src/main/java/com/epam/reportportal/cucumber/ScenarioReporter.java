@@ -41,18 +41,19 @@ import io.cucumber.core.gherkin.Feature;
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.*;
 import io.reactivex.Maybe;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -92,7 +93,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	// There is no event for recognizing end of feature in Cucumber.
 	// This map is used to record the last scenario time and its feature uri.
 	// End of feature occurs once launch is finished.
-	private final Map<URI, Date> featureEndTime = new ConcurrentHashMap<>();
+	private final Map<URI, Instant> featureEndTime = new ConcurrentHashMap<>();
 
 	/**
 	 * This map uses to record the description of the scenario and the step to append the error to the description.
@@ -105,7 +106,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private final Supplier<Launch> launch = new MemoizingSupplier<>(new Supplier<>() {
 
 		/* should not be lazy */
-		private final Date startTime = Calendar.getInstance().getTime();
+		private final Instant startTime = Instant.now();
 
 		@Override
 		public Launch get() {
@@ -137,7 +138,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param parameters ReportPortal client parameters
 	 * @return a Start Launch request instance
 	 */
-	protected StartLaunchRQ buildStartLaunchRq(Date startTime, ListenerParameters parameters) {
+	protected StartLaunchRQ buildStartLaunchRq(Instant startTime, ListenerParameters parameters) {
 		StartLaunchRQ rq = new StartLaunchRQ();
 		rq.setName(parameters.getLaunchName());
 		rq.setStartTime(startTime);
@@ -206,7 +207,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 */
 	protected void afterLaunch() {
 		FinishExecutionRQ finishLaunchRq = new FinishExecutionRQ();
-		finishLaunchRq.setEndTime(Calendar.getInstance().getTime());
+		finishLaunchRq.setEndTime(Instant.now());
 		getLaunch().finish(finishLaunchRq);
 	}
 
@@ -387,7 +388,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		String codeRef = getCodeRef(testCase, parameters);
 		rq.setCodeRef(codeRef);
 		rq.setAttributes(getAttributes(testCase));
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		String type = ItemType.STEP.name();
 		rq.setType(type);
 		rq.setTestCaseId(getTestCaseId(testCase, parameters));
@@ -429,12 +430,12 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param dateTime a date and time object to use as feature end time
 	 * @return a date and time object of the finish event
 	 */
-	protected Date finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status, @Nullable Date dateTime) {
+	protected Instant finishTestItem(@Nullable Maybe<String> itemId, @Nullable ItemStatus status, @Nullable Instant dateTime) {
 		if (itemId == null) {
 			LOGGER.error("BUG: Trying to finish unspecified test item.");
 			return null;
 		}
-		Date endTime = ofNullable(dateTime).orElse(Calendar.getInstance().getTime());
+		Instant endTime = ofNullable(dateTime).orElse(Instant.now());
 		FinishTestItemRQ rq = buildFinishTestItemRequest(itemId, endTime, status);
 		//noinspection ReactiveStreamsUnusedPublisher
 		getLaunch().finishTestItem(itemId, rq);
@@ -550,7 +551,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					if (mapItemStatus(status) == ItemStatus.FAILED) {
 						Optional.ofNullable(error).ifPresent(e -> errorMap.put(s.getId(), e));
 					}
-					Date endTime = finishTestItem(s.getId(), mapItemStatus(status), null);
+					Instant endTime = finishTestItem(s.getId(), mapItemStatus(status), null);
 					featureEndTime.put(featureUri, endTime);
 					s.finish();
 					removeFromTree(f.getFeature(), testCase);
@@ -567,7 +568,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		if (f.getId().equals(Maybe.empty())) {
 			return;
 		}
-		Date featureCompletionDateTime = featureEndTime.get(f.getUri());
+		Instant featureCompletionDateTime = featureEndTime.get(f.getUri());
 		f.getCurrentRule().ifPresent(r -> finishTestItem(r.getId(), null, featureCompletionDateTime));
 		finishTestItem(f.getId(), null, featureCompletionDateTime);
 		removeFromTree(f.getFeature());
@@ -685,7 +686,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(buildName(stepPrefix, keyword, getStepName(testStep)));
 		rq.setDescription(buildMultilineArgument(testStep));
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		rq.setType("STEP");
 		rq.setParameters(getParameters(testStep));
 		rq.setHasStats(false);
@@ -841,7 +842,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		String name = getHookName(testStep.getHookType());
 		rq.setName(name);
 		rq.setType(ItemType.STEP.name());
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		rq.setHasStats(false);
 		return rq;
 	}
@@ -859,7 +860,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(testStep.getCodeLocation());
 		rq.setType(ItemType.STEP.name());
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		rq.setHasStats(false);
 		return rq;
 	}
@@ -925,11 +926,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		String type = ofNullable(mimeType).filter(ContentType::isValidType).orElseGet(() -> getDataType(data, name));
 		String attachmentName = ofNullable(name).filter(m -> !m.isEmpty())
 				.orElseGet(() -> ofNullable(type).map(t -> t.substring(0, t.indexOf("/"))).orElse(""));
-		ReportPortal.emitLog(
-				new ReportPortalMessage(ByteSource.wrap(data), type, attachmentName),
-				LogLevel.INFO.name(),
-				Calendar.getInstance().getTime()
-		);
+		ReportPortal.emitLog(new ReportPortalMessage(ByteSource.wrap(data), type, attachmentName), LogLevel.INFO.name(), Instant.now());
 	}
 
 	/**
@@ -938,7 +935,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @param message a text message
 	 */
 	protected void sendLog(@Nullable String message) {
-		ReportPortal.emitLog(message, LogLevel.INFO.name(), Calendar.getInstance().getTime());
+		ReportPortal.emitLog(message, LogLevel.INFO.name(), Instant.now());
 	}
 
 	/**
@@ -953,7 +950,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		String ruleName = rule.getName().orElse(null);
 		StartTestItemRQ rq = new StartTestItemRQ();
 		rq.setName(ruleName != null ? buildName(ruleKeyword, COLON_INFIX, ruleName) : ruleKeyword);
-		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setStartTime(Instant.now());
 		rq.setAttributes(extractAttributes(Utils.getTags(rule)));
 		rq.setType("SUITE");
 		return rq;
@@ -1045,7 +1042,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		startFeatureRq.setDescription(getDescription(feature, uri));
 		startFeatureRq.setName(buildName(featureKeyword, ScenarioReporter.COLON_INFIX, featureName));
 		execute(feature.getUri(), f -> startFeatureRq.setAttributes(extractAttributes(f.getTags())));
-		startFeatureRq.setStartTime(Calendar.getInstance().getTime());
+		startFeatureRq.setStartTime(Instant.now());
 		startFeatureRq.setType(ItemType.STORY.name());
 		return startFeatureRq;
 	}
@@ -1272,7 +1269,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	 * @return finish request
 	 */
 	@Nonnull
-	protected FinishTestItemRQ buildFinishTestItemRequest(@Nonnull Maybe<String> itemId, @Nullable Date finishTime,
+	protected FinishTestItemRQ buildFinishTestItemRequest(@Nonnull Maybe<String> itemId, @Nullable Instant finishTime,
 			@Nullable ItemStatus status) {
 		FinishTestItemRQ rq = new FinishTestItemRQ();
 		if (status == ItemStatus.FAILED) {

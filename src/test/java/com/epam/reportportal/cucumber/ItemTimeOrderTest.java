@@ -30,7 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,9 +62,11 @@ public class ItemTimeOrderTest {
 	@BeforeEach
 	public void initLaunch() {
 		TestUtils.mockLaunch(client, launchId, suiteId, testId, stepIds);
+		TestUtils.mockLogging(client);
 		TestScenarioReporterWithPause.RP.set(reportPortal);
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked"})
 	@Test
 	public void verify_time_order_scenario_reporter() {
 		TestUtils.runTests(BellyTest.class);
@@ -79,7 +80,7 @@ public class ItemTimeOrderTest {
 		ArgumentCaptor<StartTestItemRQ> stepCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(3)).startTestItem(same(testId), stepCaptor.capture());
 
-		Date startTime = launchCaptor.getValue().getStartTime();
+		Comparable startTime = launchCaptor.getValue().getStartTime();
 		StartTestItemRQ item = featureCaptor.getValue();
 		assertThat(item.getStartTime(), allOf(notNullValue(), greaterThanOrEqualTo(startTime)));
 		startTime = item.getStartTime();

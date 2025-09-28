@@ -23,12 +23,12 @@ import com.epam.ta.reportportal.ws.model.attribute.ItemAttributesRQ;
 import io.cucumber.core.gherkin.Feature;
 import io.cucumber.plugin.event.Node;
 import io.cucumber.plugin.event.Status;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;

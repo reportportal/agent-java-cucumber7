@@ -168,7 +168,9 @@ public class ParameterTest {
 		List<String> logs = filterLogs(
 				logCaptor,
 				l -> l.getItemUuid() != null && l.getItemUuid().equals(stepIds.get(0).getValue().get(0))
-		).stream().map(SaveLogRQ::getMessage).collect(Collectors.toList());
+		).stream()
+				.map(SaveLogRQ::getMessage)
+				.collect(Collectors.toList());
 
 		assertThat(logs, hasSize(2));
 		assertThat(logs, hasItem(equalTo(TABLE_PARAM)));
