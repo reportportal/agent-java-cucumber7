@@ -141,7 +141,9 @@ public class ParameterTest {
 		verify(client, times(1)).startTestItem(any());
 		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
 		verify(client, times(3)).startTestItem(same(suiteId), testCaptor.capture());
+		verify(client, times(3)).startTestItem(same(testIds.get(0)), any());
 		verify(client, times(3)).startTestItem(same(testIds.get(1)), any());
+		verify(client, times(3)).startTestItem(same(testIds.get(2)), any());
 
 		List<StartTestItemRQ> items = testCaptor.getAllValues();
 		IntStream.range(0, items.size()).forEach(i -> {
