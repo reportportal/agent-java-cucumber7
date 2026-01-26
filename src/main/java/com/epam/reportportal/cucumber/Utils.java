@@ -44,7 +44,7 @@ public class Utils {
 
 	private static final String EMPTY = "";
 	public static final String TAG_KEY = "@";
-	private static final String KEY_VALUE_SEPARATOR = ":";
+	public static final String KEY_VALUE_SEPARATOR = ":";
 
 	private Utils() {
 		throw new AssertionError("No instances should exist for the class!");
