@@ -17,8 +17,6 @@
 package com.epam.reportportal.cucumber.testng;
 
 import com.epam.reportportal.cucumber.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.IExecutionListener;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
@@ -33,7 +31,6 @@ import static java.util.Optional.ofNullable;
  * {@link com.epam.reportportal.cucumber.ScenarioReporter} determine if a Scenario is a retry.
  */
 public class TestNgRetriesListener implements IExecutionListener, ITestListener {
-	private static final Logger LOGGER = LoggerFactory.getLogger(TestNgRetriesListener.class);
 	private static final Map<String, Boolean> RETRIES = new ConcurrentHashMap<>();
 	private static final Boolean ENABLED;
 
@@ -55,18 +52,34 @@ public class TestNgRetriesListener implements IExecutionListener, ITestListener 
 		RETRIES.clear();
 	}
 
-	@Override
-	public void onTestStart(ITestResult result) {
+	private static void setRetryFlag(ITestResult result) {
 		if (!ENABLED) {
 			return;
 		}
 		ofNullable(result.getParameters()).map(params -> (io.cucumber.testng.PickleWrapper) params[0])
 				.map(io.cucumber.testng.PickleWrapper::getPickle)
 				.map(pickle -> pickle.getUri().toString() + Utils.KEY_VALUE_SEPARATOR + pickle.getLine())
-				.ifPresent(uniqueId -> {
-					RETRIES.put(uniqueId, result.wasRetried());
-					LOGGER.warn("Test result started: {}; retry: {}", uniqueId, result.wasRetried());
-				});
+				.ifPresent(uniqueId -> RETRIES.put(uniqueId, result.wasRetried()));
+	}
+
+	@Override
+	public void onTestSuccess(ITestResult result) {
+		setRetryFlag(result);
+	}
+
+	@Override
+	public void onTestFailure(ITestResult result) {
+		setRetryFlag(result);
+	}
+
+	@Override
+	public void onTestSkipped(ITestResult result) {
+		setRetryFlag(result);
+	}
+
+	@Override
+	public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
+		setRetryFlag(result);
 	}
 
 	public static boolean isRetry(String id) {
