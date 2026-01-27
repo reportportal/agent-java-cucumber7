@@ -16,6 +16,7 @@
 
 package com.epam.reportportal.cucumber;
 
+import com.epam.reportportal.cucumber.testng.TestNgRetriesListener;
 import com.epam.reportportal.cucumber.util.HookSuite;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
@@ -996,6 +997,15 @@ public class ScenarioReporter implements ConcurrentEventListener {
 
 					// If it's a ScenarioOutline use Example's line number as code reference to detach one Test Item from another
 					StartTestItemRQ startTestItemRQ = buildStartScenarioRequest(scenario);
+					boolean testNgRetry = TestNgRetriesListener.isRetry(
+							scenario.getUri() + KEY_VALUE_SEPARATOR + scenario.getLocation().getLine());
+					if (testNgRetry) {
+						String retryOf = s.getId().blockingGet("");
+						if (!retryOf.isEmpty()) {
+							startTestItemRQ.setRetry(true);
+							startTestItemRQ.setRetryOf(retryOf);
+						}
+					}
 					s.setId(startScenario(rootId, startTestItemRQ));
 					descriptionsMap.put(s.getId(), ofNullable(startTestItemRQ.getDescription()).orElse(StringUtils.EMPTY));
 					if (getLaunch().getParameters().isCallbackReportingEnabled()) {

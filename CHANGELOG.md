@@ -1,5 +1,9 @@
 # Changelog
 ## [Unreleased]
+### Added
+- TestNG retries handling, by @HardNorth
+### Changed
+- Client version updated to [5.4.8](https://github.com/reportportal/client-java/releases/tag/5.4.8), by @HardNorth
 
 ## [5.4.3]
 ### Changed

@@ -36,6 +36,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -54,6 +55,13 @@ public class ParameterTest {
 			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
 			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
 	public static class OneSimpleAndOneScenarioOutlineScenarioReporterTest extends AbstractTestNGCucumberTests {
+
+	}
+
+	@CucumberOptions(features = "src/test/resources/features/BasicScenarioOutlineParameters.feature", glue = {
+			"com.epam.reportportal.cucumber.integration.feature" }, plugin = {
+			"com.epam.reportportal.cucumber.integration.TestScenarioReporter" })
+	public static class RunScenarioOutlineParametersTest extends AbstractTestNGCucumberTests {
 
 	}
 
@@ -77,7 +85,7 @@ public class ParameterTest {
 
 	private final String launchId = CommonUtils.namedId("launch_");
 	private final String suiteId = CommonUtils.namedId("feature_");
-	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(2).collect(Collectors.toList());
+	private final List<String> testIds = Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList());
 	private final List<Pair<String, List<String>>> stepIds = testIds.stream()
 			.map(id -> Pair.of(id, Stream.generate(() -> CommonUtils.namedId("scenario_")).limit(3).collect(Collectors.toList())))
 			.collect(Collectors.toList());
@@ -117,6 +125,33 @@ public class ParameterTest {
 		IntStream.range(0, items.size()).forEach(i -> {
 			StartTestItemRQ step = items.get(i);
 			assertThat(step.getName(), equalTo(STEP_NAMES.get(i)));
+		});
+	}
+
+	List<Map<String, String>> EXPECTED_PARAMETERS = Arrays.asList(
+			Map.of("str", "\"first\"", "parameters", "123"),
+			Map.of("str", "\"second\"", "parameters", "12345"),
+			Map.of("str", "\"third\"", "parameters", "12345678")
+	);
+
+	@Test
+	public void verify_agent_correctly_reports_parameters() {
+		TestUtils.runTests(RunScenarioOutlineParametersTest.class);
+
+		verify(client, times(1)).startTestItem(any());
+		ArgumentCaptor<StartTestItemRQ> testCaptor = ArgumentCaptor.forClass(StartTestItemRQ.class);
+		verify(client, times(3)).startTestItem(same(suiteId), testCaptor.capture());
+		verify(client, times(3)).startTestItem(same(testIds.get(0)), any());
+		verify(client, times(3)).startTestItem(same(testIds.get(1)), any());
+		verify(client, times(3)).startTestItem(same(testIds.get(2)), any());
+
+		List<StartTestItemRQ> items = testCaptor.getAllValues();
+		IntStream.range(0, items.size()).forEach(i -> {
+			StartTestItemRQ test = items.get(i);
+			assertThat(
+					test.getParameters().stream().collect(Collectors.toMap(ParameterResource::getKey, ParameterResource::getValue)),
+					equalTo(EXPECTED_PARAMETERS.get(i))
+			);
 		});
 	}
 

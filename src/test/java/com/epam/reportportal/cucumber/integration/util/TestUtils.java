@@ -32,6 +32,7 @@ import okio.Buffer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
+import org.testng.ITestNGListener;
 import org.testng.TestNG;
 
 import java.io.IOException;
@@ -48,13 +49,20 @@ public class TestUtils {
 
 	public static final String TEST_NAME = "TestContainer";
 
-	public static TestNG runTests(Class<?>... classes) {
+	public static TestNG runTestsWithListener(Class<?extends ITestNGListener> listener, Class<?>... testClasses) {
 		final TestNG testNG = new TestNG(true);
-		testNG.setTestClasses(classes);
+		testNG.setTestClasses(testClasses);
+		if(listener!=null) {
+			testNG.setListenerClasses(List.of(listener));
+		}
 		testNG.setDefaultTestName(TEST_NAME);
 		testNG.setExcludedGroups("optional");
 		testNG.run();
 		return testNG;
+	}
+
+	public static TestNG runTests(Class<?>... classes) {
+		return runTestsWithListener(null, classes);
 	}
 
 	public static void mockLaunch(ReportPortalClient client, String launchUuid, String suiteUuid, String testClassUuid,
