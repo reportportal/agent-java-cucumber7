@@ -16,7 +16,6 @@
 
 package com.epam.reportportal.cucumber;
 
-import com.epam.reportportal.cucumber.testng.TestNgRetriesListener;
 import com.epam.reportportal.cucumber.util.HookSuite;
 import com.epam.reportportal.listeners.ItemStatus;
 import com.epam.reportportal.listeners.ItemType;
@@ -52,6 +51,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Instant;
@@ -86,6 +87,18 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final String UNKNOWN_PARAM = "arg";
 	private static final String TEST_CASE_ID_PREFIX = "@tc_id:";
 	private static final String ERROR_FORMAT = "Error:\n%s";
+
+	private static final Class<?> TESTNG_LISTENER_CLASS;
+
+	static {
+		Class<?> testNgListenerClass = null;
+		try {
+			testNgListenerClass = Class.forName("com.epam.reportportal.cucumber.testng.TestNgRetriesListener");
+		} catch (Exception ignore) {
+
+		}
+		TESTNG_LISTENER_CLASS = testNgListenerClass;
+	}
 
 	private final Map<URI, FeatureContext> featureContextMap = new ConcurrentHashMap<>();
 	private final TestItemTree itemTree = new TestItemTree();
@@ -997,8 +1010,17 @@ public class ScenarioReporter implements ConcurrentEventListener {
 
 					// If it's a ScenarioOutline use Example's line number as code reference to detach one Test Item from another
 					StartTestItemRQ startTestItemRQ = buildStartScenarioRequest(scenario);
-					boolean testNgRetry = TestNgRetriesListener.isRetry(
-							scenario.getUri() + KEY_VALUE_SEPARATOR + scenario.getLocation().getLine());
+					boolean testNgRetry = false;
+					if (TESTNG_LISTENER_CLASS != null) {
+						try {
+							Method isRetry = TESTNG_LISTENER_CLASS.getMethod("isRetry", String.class);
+							testNgRetry = (Boolean) isRetry.invoke(
+									null,
+									scenario.getUri() + KEY_VALUE_SEPARATOR + scenario.getLocation().getLine()
+							);
+						} catch (NoSuchMethodException | SecurityException | InvocationTargetException | IllegalAccessException ignore) {
+						}
+					}
 					if (testNgRetry) {
 						String retryOf = s.getId().blockingGet("");
 						if (!retryOf.isEmpty()) {
