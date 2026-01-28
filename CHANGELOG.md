@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [5.4.4]
 ### Added
 - TestNG retries handling, by @HardNorth
 ### Changed
