@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.5]
 ### Fixed
 - Possible issues with TestNG retries, by @HardNorth
 
