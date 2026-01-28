@@ -78,7 +78,7 @@ Add to your `pom.xml` to `<dependencies>` section:
 <dependency>
     <groupId>com.epam.reportportal</groupId>
     <artifactId>agent-java-cucumber7</artifactId>
-    <version>5.4.4</version>
+    <version>5.4.5</version>
 </dependency>
 ```
 
@@ -87,13 +87,13 @@ Add to your `pom.xml` to `<dependencies>` section:
 Add to your `build.gradle` to `dependencies` section:
 
 ```groovy
-implementation 'com.epam.reportportal:agent-java-cucumber7:5.4.4'
+implementation 'com.epam.reportportal:agent-java-cucumber7:5.4.5'
 ```
 
 For Kotlin DSL build scripts (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.epam.reportportal:agent-java-cucumber7:5.4.4")
+implementation("com.epam.reportportal:agent-java-cucumber7:5.4.5")
 ```
 
 ### Reporter setup
