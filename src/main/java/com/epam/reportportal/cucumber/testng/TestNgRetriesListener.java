@@ -32,31 +32,32 @@ import static java.util.Optional.ofNullable;
  */
 public class TestNgRetriesListener implements IExecutionListener, ITestListener {
 	private static final Map<String, Boolean> RETRIES = new ConcurrentHashMap<>();
-	private static final Boolean ENABLED;
+	private static final Class<?> WRAPPER_CLASS;
 
 	static {
-		boolean hasTestNG = false;
+		Class<?> wrapperClass = null;
 		try {
-			Class.forName("io.cucumber.testng.PickleWrapper");
-			hasTestNG = true;
-		} catch (ClassNotFoundException ignore) {
+			wrapperClass = Class.forName("io.cucumber.testng.PickleWrapper");
+		} catch (Throwable ignore) {
 		}
-		ENABLED = hasTestNG;
+		WRAPPER_CLASS = wrapperClass;
 	}
 
 	@Override
 	public void onExecutionFinish() {
-		if (!ENABLED) {
+		if (WRAPPER_CLASS == null) {
 			return;
 		}
 		RETRIES.clear();
 	}
 
 	private static void setRetryFlag(ITestResult result) {
-		if (!ENABLED) {
+		if (WRAPPER_CLASS == null) {
 			return;
 		}
-		ofNullable(result.getParameters()).map(params -> (io.cucumber.testng.PickleWrapper) params[0])
+
+		ofNullable(result.getParameters()).filter(params -> params.length > 0 && params[0] != null && WRAPPER_CLASS.isInstance(params[0]))
+				.map(params -> (io.cucumber.testng.PickleWrapper) params[0])
 				.map(io.cucumber.testng.PickleWrapper::getPickle)
 				.map(pickle -> pickle.getUri().toString() + Utils.KEY_VALUE_SEPARATOR + pickle.getLine())
 				.ifPresent(uniqueId -> RETRIES.put(uniqueId, result.wasRetried()));
