@@ -88,16 +88,22 @@ public class ScenarioReporter implements ConcurrentEventListener {
 	private static final String TEST_CASE_ID_PREFIX = "@tc_id:";
 	private static final String ERROR_FORMAT = "Error:\n%s";
 
-	private static final Class<?> TESTNG_LISTENER_CLASS;
+	private static final Method IS_RETRY_METHOD;
 
 	static {
 		Class<?> testNgListenerClass = null;
 		try {
 			testNgListenerClass = Class.forName("com.epam.reportportal.cucumber.testng.TestNgRetriesListener");
 		} catch (Exception ignore) {
-
 		}
-		TESTNG_LISTENER_CLASS = testNgListenerClass;
+		Method isRetry = null;
+		if (testNgListenerClass != null) {
+			try {
+				isRetry = testNgListenerClass.getMethod("isRetry", String.class);
+			} catch (NoSuchMethodException ignore) {
+			}
+		}
+		IS_RETRY_METHOD = isRetry;
 	}
 
 	private final Map<URI, FeatureContext> featureContextMap = new ConcurrentHashMap<>();
@@ -1011,14 +1017,13 @@ public class ScenarioReporter implements ConcurrentEventListener {
 					// If it's a ScenarioOutline use Example's line number as code reference to detach one Test Item from another
 					StartTestItemRQ startTestItemRQ = buildStartScenarioRequest(scenario);
 					boolean testNgRetry = false;
-					if (TESTNG_LISTENER_CLASS != null) {
+					if (IS_RETRY_METHOD != null) {
 						try {
-							Method isRetry = TESTNG_LISTENER_CLASS.getMethod("isRetry", String.class);
-							testNgRetry = (Boolean) isRetry.invoke(
+							testNgRetry = Boolean.TRUE.equals(IS_RETRY_METHOD.invoke(
 									null,
 									scenario.getUri() + KEY_VALUE_SEPARATOR + scenario.getLocation().getLine()
-							);
-						} catch (NoSuchMethodException | SecurityException | InvocationTargetException | IllegalAccessException ignore) {
+							));
+						} catch (SecurityException | InvocationTargetException | IllegalAccessException ignore) {
 						}
 					}
 					if (testNgRetry) {
