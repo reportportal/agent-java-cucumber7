@@ -94,7 +94,7 @@ public class ScenarioReporter implements ConcurrentEventListener {
 		Class<?> testNgListenerClass = null;
 		try {
 			testNgListenerClass = Class.forName("com.epam.reportportal.cucumber.testng.TestNgRetriesListener");
-		} catch (Exception ignore) {
+		} catch (Throwable ignore) {
 		}
 		Method isRetry = null;
 		if (testNgListenerClass != null) {
