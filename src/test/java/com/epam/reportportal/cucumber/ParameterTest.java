@@ -128,7 +128,7 @@ public class ParameterTest {
 		});
 	}
 
-	List<Map<String, String>> EXPECTED_PARAMETERS = Arrays.asList(
+	private static final List<Map<String, String>> EXPECTED_PARAMETERS = Arrays.asList(
 			Map.of("str", "\"first\"", "parameters", "123"),
 			Map.of("str", "\"second\"", "parameters", "12345"),
 			Map.of("str", "\"third\"", "parameters", "12345678")
